@@ -345,7 +345,7 @@
     <div class="row">
         <div class="col-12">
             <div class="quick-actions">
-                <h5 class="mb-3 text-white">Acciones Rápidas</h5>
+                <h5 class="mb-3 text-white"> + Acciones Rápidas</h5>
                 <div class="d-flex flex-wrap gap-2">
 
                     <a href="/transferencias/create" class="quick-action-btn">

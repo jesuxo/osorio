@@ -425,7 +425,7 @@
     @endif
 @endsection
 @section('scripts')
-    <script src="{{ URL::asset('build/js/app.js') }}"></script>
+    <script src="{{ URL::asset('build/js/app.js') }}{{'?vvv='.rand(0,555)}}"></script>
     @if( session('comercialid') == 1)
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         <script>

@@ -992,19 +992,7 @@
 						item.style.display = "none";
 					});
 
-					var emptyNotificationElem = document.querySelector("#notificationItemsTabContent .empty-notification-elem")
-					if (!emptyNotificationElem) {
-						document.getElementById("notificationItemsTabContent").innerHTML += '<div class="empty-notification-elem text-center px-4">\
-						<div class="mt-3 avatar-md mx-auto">\
-							<div class="avatar-title bg-info-subtle text-info fs-24 rounded-circle">\
-							<i class="bi bi-bell "></i>\
-							</div>\
-						</div>\
-						<div class="pb-3 mt-2">\
-							<h6 class="fs-16 fw-semibold lh-base">Hey! You have no any notifications </h6>\
-						</div>\
-					</div>'
-					}
+
 				}
 			}
 			emptyNotification();

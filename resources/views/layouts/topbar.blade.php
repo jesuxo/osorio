@@ -257,42 +257,6 @@
                     </div>
                 </div>
 
-                <style>
-                    .dropdown-item.active {
-                        background: #0072c5;
-                    }
-
-                    .dropdown-item.active small {
-                        color: rgba(255,255,255,0.8) !important;
-                    }
-
-                    .dropdown-item:hover {
-                        background-color: #f8f9fa;
-                    }
-
-                    .dropdown-body {
-                        scrollbar-width: thin;
-                    }
-
-                    .dropdown-body::-webkit-scrollbar {
-                        width: 6px;
-                    }
-
-                    .dropdown-body::-webkit-scrollbar-track {
-                        background: #f1f1f1;
-                    }
-
-                    .dropdown-body::-webkit-scrollbar-thumb {
-                        background: #888;
-                        border-radius: 3px;
-                    }
-
-                    .dropdown-body::-webkit-scrollbar-thumb:hover {
-                        background: #555;
-                    }
-                </style>
-
-                {{-- resources/views/layouts/partials/topbar.blade.php --}}
                 <div class="dropdown topbar-head-dropdown ms-1 header-item dropdown-hover-end">
                     <button type="button" class="btn btn-icon btn-topbar btn-ghost-dark rounded-circle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <i class="bi bi-arrow-left-right align-middle fs-20 "></i>
@@ -322,7 +286,7 @@
                             @php
                                 $user = Auth::user();
                                 $comerciales_acceso = $user ? $user->getComercialesAcceso() : collect();
-                                $comercial_actual = session('comercial_actual');
+                                $comercialdata = session('comercialdata');
                             @endphp
 
                             @if($comerciales_acceso->count() > 0)
@@ -669,12 +633,15 @@
                         <a class="dropdown-item"  style="display: none" href="javascript:void(0)"><span class="badge bg-success-subtle text-success float-end ms-2">New</span><i class="bi bi-cassette text-muted fs-15 align-middle me-1"></i> <span class="align-middle">Frontend</span></a>
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="account-setting"  style="display: none"><i class="bi bi-gear text-muted fs-15 align-middle me-1"></i> <span class="align-middle">Settings</span></a>
-                        <a class="dropdown-item" href="{{ url('logout') }}"><i class="bi bi-box-arrow-right text-muted fs-15 align-middle me-1"></i> <span class="align-middle" data-key="t-logout">{{ __('t-logout') }}</span></a>
+                        <a class="dropdown-item" href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();"><i class="bi bi-box-arrow-right text-muted fs-15 align-middle me-1"></i> <span class="align-middle" data-key="t-logout">{{ __('t-logout') }}</span></a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    <form  method="POST" style="display: none;"  action="{{ route('logout') }}" id="logout-form">
+        @csrf
+    </form>
 </header>
 
 
@@ -711,12 +678,13 @@
                         $(document).ready(function() {
                             let currentSelectedIndex = -1;
                             let searchResults = [];
+                            let isScrolling = false;
                             let mouseOverIndex = -1;
                             let isNavigatingWithKeyboard = false;
 
-                            // Función para actualizar los resultados y habilitar la navegación
                             function updateSearchResults(response) {
                                 $('#ajaxbusquedaproductos').html(response);
+
                             }
 
                             function performSearch(busqueda) {
@@ -752,6 +720,9 @@
 
                             // Variable para saber si ya se realizó una búsqueda
                             let hasSearchResults = false;
+
+                            // Evento para el input de búsqueda
+
 
                             // Evento para el botón "Limpiar"
                             $('#search-close-options').off('click').on('click', function() {
@@ -891,3 +862,11 @@
     </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
 
+<script>
+    document.addEventListener('keydown', function(e) {
+        /*if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+            e.preventDefault(); // Prevenir el comportamiento predeterminado del navegador
+            focusbusqueda(); // Ejecutar tu función
+        }*/
+    });
+</script>

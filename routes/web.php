@@ -7,10 +7,13 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CwcuentasController;
 use App\Http\Controllers\ImagenController;
 use App\Http\Controllers\SaacxcwController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\SafactController;
 use App\Http\Controllers\SasucursalController;
 use App\Http\Controllers\SaprodController;
+use App\Http\Controllers\ChatConversationController;
 use App\Http\Controllers\SavendController;
+use App\Http\Controllers\IAController;
 use App\Http\Controllers\CwtransferenciasController;
 use App\Http\Controllers\ChoferController;
 use App\Http\Controllers\CamionController;
@@ -114,6 +117,17 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
 
+    Route::prefix('chat')->name('chat.')->group(function () {
+        Route::get('/conversations', [ChatConversationController::class, 'index'])->name('index');
+        Route::post('/conversations/{id}', [ChatConversationController::class, 'show'])->name('show');
+        Route::put('/conversations/{id}/status', [ChatConversationController::class, 'updateStatus'])->name('update-status');
+        Route::delete('/conversations/{id}', [ChatConversationController::class, 'destroy'])->name('destroy');
+        Route::get('/export', [ChatConversationController::class, 'export'])->name('export');
+        Route::get('/stats', [ChatConversationController::class, 'stats'])->name('stats');
+    });
+
+    Route::resource('iaknowledge', IAController::class);
+    Route::get('iaknowledge-search', [IAController::class, 'search'])->name('iaknowledge.search');
 
 // routes/web.php
 
@@ -578,6 +592,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('{any}', [TonerController::class, 'index']);
     Route::get('components/{any}', [TonerController::class, 'components']);
 });
+
+Route::post('/chat/initialize', [ChatbotController::class, 'initialize'])->name('chat.initialize');
+Route::post('/chat/message', [ChatbotController::class, 'message'])->name('chatbot.message');
+Route::post('/chat/end', [ChatbotController::class, 'endConversation'])->name('chat.end');
+
 
 Route::controller(CwtransferenciasController::class)->group(function () {
     Route::get('transferencias/cambiarstatus/{Cwtransferencia}', 'cambiarstatus');

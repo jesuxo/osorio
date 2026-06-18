@@ -711,165 +711,14 @@
                         $(document).ready(function() {
                             let currentSelectedIndex = -1;
                             let searchResults = [];
-                            let isScrolling = false;
                             let mouseOverIndex = -1;
                             let isNavigatingWithKeyboard = false;
 
                             // Función para actualizar los resultados y habilitar la navegación
                             function updateSearchResults(response) {
                                 $('#ajaxbusquedaproductos').html(response);
-
-                                // Obtener todas las filas de resultados
-                                searchResults = $('#ajaxbusquedaproductos tbody tr').filter(function() {
-                                    return $(this).find('td a').length > 0;
-                                }).toArray();
-
-                                // Resetear selección
-                                clearSelection();
-                                currentSelectedIndex = -1;
-                                mouseOverIndex = -1;
-
-                                // Si hay resultados, seleccionar el primero automáticamente
-                                if (searchResults.length > 0) {
-                                    currentSelectedIndex = 0;
-                                    highlightSelection();
-                                    // Scroll suave al primer elemento después de un pequeño retraso
-                                    setTimeout(function() {
-                                        smoothScrollToSelected();
-                                    }, 100);
-                                }
                             }
 
-                            // Función para scroll suave al elemento seleccionado
-                            function smoothScrollToSelected() {
-                                if (currentSelectedIndex >= 0 && currentSelectedIndex < searchResults.length && !isScrolling) {
-                                    const $selectedRow = $(searchResults[currentSelectedIndex]);
-                                    const container = $('#ajaxbusquedaproductos');
-
-                                    if (container.length && $selectedRow.length) {
-                                        const containerTop = container.scrollTop();
-                                        const containerBottom = containerTop + container.innerHeight();
-                                        const elementTop = $selectedRow.position().top;
-                                        const elementBottom = elementTop + $selectedRow.outerHeight();
-
-                                        let newScrollTop = containerTop;
-
-                                        // Determinar si necesita scroll
-                                        if (elementTop < 0) {
-                                            newScrollTop = containerTop + elementTop - 10;
-                                        } else if (elementBottom > container.innerHeight()) {
-                                            newScrollTop = containerTop + (elementBottom - container.innerHeight()) + 10;
-                                        }
-
-                                        // Aplicar scroll suave solo si es necesario
-                                        if (newScrollTop !== containerTop) {
-                                            isScrolling = true;
-                                            container.animate({
-                                                scrollTop: newScrollTop
-                                            }, 150, function() {
-                                                isScrolling = false;
-                                            });
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Función para resaltar la fila seleccionada
-                            function highlightSelection() {
-                                // Limpiar todos los highlights
-                                $('.search-selected').removeClass('search-selected');
-                                $('.search-mouse-hover').removeClass('search-mouse-hover');
-
-                                if (currentSelectedIndex >= 0 && currentSelectedIndex < searchResults.length) {
-                                    const $selectedRow = $(searchResults[currentSelectedIndex]);
-                                    $selectedRow.addClass('search-selected');
-                                }
-
-                                // Si hay un elemento bajo el mouse y NO estamos navegando con teclado, aplicar estilo de hover
-                                if (!isNavigatingWithKeyboard && mouseOverIndex >= 0 && mouseOverIndex < searchResults.length && mouseOverIndex !== currentSelectedIndex) {
-                                    const $hoverRow = $(searchResults[mouseOverIndex]);
-                                    $hoverRow.addClass('search-mouse-hover');
-                                }
-                            }
-
-                            // Función para limpiar la selección
-                            function clearSelection() {
-                                $('.search-selected').removeClass('search-selected');
-                                $('.search-mouse-hover').removeClass('search-mouse-hover');
-                            }
-
-                            // Función para navegar hacia arriba
-                            function navigateUp() {
-                                if (searchResults.length === 0) return;
-
-                                isNavigatingWithKeyboard = true;
-                                let newIndex = currentSelectedIndex;
-
-                                if (currentSelectedIndex > 0) {
-                                    newIndex = currentSelectedIndex - 1;
-                                } else if (currentSelectedIndex === -1 && searchResults.length > 0) {
-                                    newIndex = 0;
-                                } else {
-                                    isNavigatingWithKeyboard = false;
-                                    return;
-                                }
-
-                                if (newIndex !== currentSelectedIndex) {
-                                    currentSelectedIndex = newIndex;
-                                    mouseOverIndex = -1;
-                                    highlightSelection();
-                                    smoothScrollToSelected();
-                                }
-
-                                setTimeout(function() {
-                                    isNavigatingWithKeyboard = false;
-                                }, 200);
-                            }
-
-                            // Función para navegar hacia abajo
-                            function navigateDown() {
-                                if (searchResults.length === 0) return;
-
-                                isNavigatingWithKeyboard = true;
-                                let newIndex = currentSelectedIndex;
-
-                                if (currentSelectedIndex < searchResults.length - 1) {
-                                    newIndex = currentSelectedIndex + 1;
-                                } else if (currentSelectedIndex === -1 && searchResults.length > 0) {
-                                    newIndex = 0;
-                                } else {
-                                    isNavigatingWithKeyboard = false;
-                                    return;
-                                }
-
-                                if (newIndex !== currentSelectedIndex) {
-                                    currentSelectedIndex = newIndex;
-                                    mouseOverIndex = -1;
-                                    highlightSelection();
-                                    smoothScrollToSelected();
-                                }
-
-                                setTimeout(function() {
-                                    isNavigatingWithKeyboard = false;
-                                }, 200);
-                            }
-
-                            // Función para abrir el enlace del producto seleccionado
-                            function openSelectedProduct() {
-                                if (currentSelectedIndex >= 0 && currentSelectedIndex < searchResults.length) {
-                                    const selectedRow = $(searchResults[currentSelectedIndex]);
-                                    const link = selectedRow.find('td a:first');
-
-                                    if (link.length > 0) {
-                                        const url = link.attr('href');
-                                        if (url && url !== '#') {
-                                            window.location.href = url;
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Función para realizar la búsqueda
                             function performSearch(busqueda) {
                                 if (busqueda.trim() !== '') {
                                     $('#textbusqueda').html("Búsqueda: " + busqueda);
@@ -877,7 +726,6 @@
                                     $('#textbusqueda').html('');
                                     $('#ajaxbusquedaproductos').html('');
                                     searchResults = [];
-                                    clearSelection();
                                     currentSelectedIndex = -1;
                                     mouseOverIndex = -1;
                                     return;
@@ -905,72 +753,16 @@
                             // Variable para saber si ya se realizó una búsqueda
                             let hasSearchResults = false;
 
-                            // Evento para el input de búsqueda
-                            $('#search-options').off('keypress').on('keypress', function(e) {
-                                if (e.which === 13) {
-                                    e.preventDefault();
-
-                                    // Si hay resultados seleccionados, abrir el producto
-                                    if (currentSelectedIndex >= 0 && searchResults.length > 0) {
-                                        console.log('Abriendo producto seleccionado');
-                                        openSelectedProduct();
-                                    }
-                                    // Si no hay resultados seleccionados pero hay resultados, seleccionar el primero y abrir
-                                    else if (searchResults.length > 0) {
-                                        console.log('Seleccionando primer resultado y abriendo');
-                                        currentSelectedIndex = 0;
-                                        openSelectedProduct();
-                                    }
-                                    // Si no hay resultados, realizar búsqueda
-                                    else {
-                                        const busqueda = $(this).val();
-                                        if (busqueda.trim() !== '') {
-                                            console.log('Realizando búsqueda');
-                                            performSearch(busqueda);
-                                        }
-                                    }
-                                }
-                            });
-
                             // Evento para el botón "Limpiar"
                             $('#search-close-options').off('click').on('click', function() {
                                 $('#search-options').val('');
                                 $('#textbusqueda').html('');
                                 $('#ajaxbusquedaproductos').html('');
                                 searchResults = [];
-                                clearSelection();
                                 currentSelectedIndex = -1;
                                 mouseOverIndex = -1;
                                 hasSearchResults = false;
                                 $('#search-options').focus();
-                            });
-
-                            // Evento para teclas de navegación
-                            $(document).off('keydown.searchModal').on('keydown.searchModal', function(e) {
-                                if ($('#searchModal').hasClass('show')) {
-                                    const key = e.key;
-                                    const activeElement = document.activeElement;
-                                    const isInputFocused = $(activeElement).is('#search-options');
-
-                                    if (key === 'ArrowUp') {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        navigateUp();
-                                    } else if (key === 'ArrowDown') {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        navigateDown();
-                                    } else if (key === 'Enter') {
-                                        // Si el foco NO está en el input y hay resultados seleccionados, abrir producto
-                                        if (!isInputFocused && currentSelectedIndex >= 0 && searchResults.length > 0) {
-                                            e.preventDefault();
-                                            openSelectedProduct();
-                                        }
-                                        // Si el foco está en el input, ya manejamos el Enter en el evento keypress del input
-                                    } else if (key === 'Escape') {
-                                        $('#searchModal').modal('hide');
-                                    }
-                                }
                             });
 
                             // Cuando se abre el modal
@@ -981,7 +773,6 @@
                                 searchResults = [];
                                 mouseOverIndex = -1;
                                 hasSearchResults = false;
-                                clearSelection();
 
                                 // Limpiar búsqueda anterior
                                 $input.val('');
@@ -995,7 +786,6 @@
                                 searchResults = [];
                                 mouseOverIndex = -1;
                                 hasSearchResults = false;
-                                clearSelection();
                             });
 
                             // Navegación con mouse - SOLO efecto visual
@@ -1012,28 +802,12 @@
 
                             $(document).off('mouseleave.searchModal', '#ajaxbusquedaproductos tbody tr').on('mouseleave.searchModal', '#ajaxbusquedaproductos tbody tr', function() {
                                 if ($('#searchModal').hasClass('show')) {
-                                    mouseOverIndex = -1;
+
                                     $('.search-mouse-hover').removeClass('search-mouse-hover');
                                 }
                             });
 
-                            // Clic en la fila para abrir el producto
-                            $(document).off('click.searchModal', '#ajaxbusquedaproductos tbody tr').on('click.searchModal', '#ajaxbusquedaproductos tbody tr', function(e) {
-                                if ($(e.target).is('a') || $(e.target).closest('a').length) {
-                                    return;
-                                }
 
-                                e.preventDefault();
-                                if ($('#searchModal').hasClass('show')) {
-                                    const index = searchResults.indexOf(this);
-                                    if (index !== -1) {
-                                        currentSelectedIndex = index;
-                                        mouseOverIndex = -1;
-                                        highlightSelection();
-                                        openSelectedProduct();
-                                    }
-                                }
-                            });
                         });
                     </script>
                 </div>
@@ -1117,11 +891,3 @@
     </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
 
-<script>
-    document.addEventListener('keydown', function(e) {
-        if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
-            e.preventDefault(); // Prevenir el comportamiento predeterminado del navegador
-            focusbusqueda(); // Ejecutar tu función
-        }
-    });
-</script>

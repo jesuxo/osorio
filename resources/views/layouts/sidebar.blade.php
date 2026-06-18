@@ -239,6 +239,19 @@
                     </li>
                 @endif
 
+                <!-- Asistente IA -->
+                @if(Auth::user() and auth()->user()->can('menu_ia'))
+                    <li class="nav-item">
+                        <a href="/iaknowledge" class="nav-link menu-link">
+                            <i class="bi bi-robot"></i> <span data-key="t-ai-assistant">Asistente Virtual</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/chat/conversations" class="nav-link menu-link">
+                            <i class="bi bi-chat-dots"></i> <span data-key="t-conversations">Conversaciones</span>
+                        </a>
+                    </li>
+                @endif
 
 
 

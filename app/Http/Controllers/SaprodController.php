@@ -1103,11 +1103,15 @@ class SaprodController extends Controller
     {
         $producto = Saprod::find($id);
 
+        if(isset($request->refere) and $request->refere!='')
+            $request->refere = str_replace("'",' ',$request->refere);
+
         if(isset($producto) and isset($producto->codprod) and $producto->codprod != ''){
 
             $codprod  = $producto->codprod;
             if($codprod!=''){
                 $producto->fill($request->all());
+
 
                 if(!$request->exdecimal)
                     $producto->exdecimal = 0;

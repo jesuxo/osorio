@@ -58,86 +58,87 @@
     @include('layouts.customizer')
     @include('layouts.vendor-scripts')
 
-</body>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-{{--<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>--}}
-<script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    {{--<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>--}}
+    <script>
 
-    function capture(selector) {
-        const element = document.querySelector(selector);
-        if (!element) {
-            alert('No hay datos para capturar');
-            return;
+        function capture(selector) {
+            const element = document.querySelector(selector);
+            if (!element) {
+                alert('No hay datos para capturar');
+                return;
+            }
+
+            mostrarNotificacion('Generando captura...', 'info');
+
+            html2canvas(element, {
+                scale: 2.5,
+                backgroundColor: '#ffffff',
+                logging: false,
+                useCORS: true
+            }).then(canvas => {
+                // Método universal para Safari y otros navegadores
+                canvas.toBlob(function(blob) {
+                    // Detectar si es Safari
+                    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+                    if (!isSafari && navigator.clipboard && navigator.clipboard.write) {
+                        // Para Chrome, Edge, Firefox modernos
+                        try {
+                            const clipboardItem = new ClipboardItem({ [blob.type]: blob });
+                            navigator.clipboard.write([clipboardItem]).then(() => {
+                                mostrarNotificacion('✅ Captura copiada al portapapeles! Puedes pegarla con Ctrl+V', 'success');
+                            }).catch(() => {
+                                // Fallback a descarga
+                                descargarImagen(canvas);
+                                mostrarNotificacion('⚠️ Se descargó la imagen (clipboard no disponible)', 'warning');
+                            });
+                        } catch (e) {
+                            // Fallback para Safari
+                            descargarImagen(canvas);
+                            mostrarNotificacion('✅ Captura descargada (Safari)', 'success');
+                        }
+                    } else {
+                        // Para Safari y navegadores sin soporte
+                        descargarImagen(canvas);
+                        mostrarNotificacion('✅ Captura descargada', 'success');
+                    }
+                }, 'image/png');
+            }).catch(error => {
+                console.error('Error:', error);
+                alert('Error al capturar la pantalla');
+            });
         }
 
-        mostrarNotificacion('Generando captura...', 'info');
+        function descargarImagen(canvas, nombre = 'captura') {
+            const link = document.createElement('a');
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            link.download = `${nombre}_${timestamp}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
 
-        html2canvas(element, {
-            scale: 2.5,
-            backgroundColor: '#ffffff',
-            logging: false,
-            useCORS: true
-        }).then(canvas => {
-            // Método universal para Safari y otros navegadores
-            canvas.toBlob(function(blob) {
-                // Detectar si es Safari
-                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        function mostrarNotificacion(mensaje, tipo = 'success') {
+            $('.screenshot-notification').remove();
 
-                if (!isSafari && navigator.clipboard && navigator.clipboard.write) {
-                    // Para Chrome, Edge, Firefox modernos
-                    try {
-                        const clipboardItem = new ClipboardItem({ [blob.type]: blob });
-                        navigator.clipboard.write([clipboardItem]).then(() => {
-                            mostrarNotificacion('✅ Captura copiada al portapapeles! Puedes pegarla con Ctrl+V', 'success');
-                        }).catch(() => {
-                            // Fallback a descarga
-                            descargarImagen(canvas);
-                            mostrarNotificacion('⚠️ Se descargó la imagen (clipboard no disponible)', 'warning');
-                        });
-                    } catch (e) {
-                        // Fallback para Safari
-                        descargarImagen(canvas);
-                        mostrarNotificacion('✅ Captura descargada (Safari)', 'success');
-                    }
-                } else {
-                    // Para Safari y navegadores sin soporte
-                    descargarImagen(canvas);
-                    mostrarNotificacion('✅ Captura descargada', 'success');
-                }
-            }, 'image/png');
-        }).catch(error => {
-            console.error('Error:', error);
-            alert('Error al capturar la pantalla');
-        });
-    }
+            let bgColor   = tipo === 'success' ? '#0072c5' : (tipo === 'warning' ? '#ffc107' : '#0072c5');
+            let icono     = tipo === 'success' ? 'check-circle-fill' : (tipo === 'warning' ? 'exclamation-triangle-fill' : 'info-circle-fill');
+            let textColor = tipo === 'warning' ? '#000' : '#fff';
 
-    function descargarImagen(canvas, nombre = 'captura') {
-        const link = document.createElement('a');
-        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-        link.download = `${nombre}_${timestamp}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-    }
-
-    function mostrarNotificacion(mensaje, tipo = 'success') {
-        $('.screenshot-notification').remove();
-
-        let bgColor   = tipo === 'success' ? '#0072c5' : (tipo === 'warning' ? '#ffc107' : '#0072c5');
-        let icono     = tipo === 'success' ? 'check-circle-fill' : (tipo === 'warning' ? 'exclamation-triangle-fill' : 'info-circle-fill');
-        let textColor = tipo === 'warning' ? '#000' : '#fff';
-
-        let notification = $(`
+            let notification = $(`
                 <div class="screenshot-notification alert" style="background-color: ${bgColor}; color: ${textColor};">
                     <i class="bi bi-${icono} me-2"></i>
                     ${mensaje}
                     <button type="button" class="btn-close btn-close-${tipo === 'warning' ? 'black' : 'white'}" data-bs-dismiss="alert"></button>
                 </div>
             `);
-        $('body').append(notification);
-        setTimeout(() => notification.fadeOut(300, () => notification.remove()), 4000);
-    }
+            $('body').append(notification);
+            setTimeout(() => notification.fadeOut(300, () => notification.remove()), 4000);
+        }
 
-    $('input[type=text]').attr("autocomplete", "off");
-</script>
+        $('input[type=text]').attr("autocomplete", "off");
+    </script>
+</body>
+
 </html>

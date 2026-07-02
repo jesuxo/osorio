@@ -1,132 +1,193 @@
-
 @extends('layouts.master')
 @section('title')
     INSTRUMENTOS DE PAGO BOLIVARES
 @endsection
 @section('css')
-    <link href="{{ URL::asset('build/libs/jsvectormap/jsvectormap.min.css') }}" rel="stylesheet" type="text/css">
-
-    <!--Swiper slider css-->
-    <link href="{{ URL::asset('build/libs/swiper/swiper-bundle.min.css') }}" rel="stylesheet" type="text/css">
     <style>
-    .botoncal{
-        background: transparent;
-        border: none;
-        color: white;
-    }
-    .botoncal:hover{
-         font-size: 13px;
-    }
+        .botoncal{
+            background: transparent;
+            border: none;
+            color: white;
+        }
+        .botoncal:hover{
+            font-size: 13px;
+        }
+        /* Estilos adicionales para totales */
+        .total-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            color: #333;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+        .total-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,114,197,0.2);
+        }
+        .total-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #0072c5;
+            line-height: 1.2;
+        }
+        .total-label {
+            font-size: 13px;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        /* Estilos para modales */
+        .modal-header {
+            background: linear-gradient(135deg, #0072c5 0%, #004b8f 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+        .modal-table {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .modal-table thead th {
+            position: sticky;
+            top: 0;
+            background: #0072c5;
+            color: white;
+            z-index: 10;
+        }
+        /* Badges */
+        .badge-fac {
+            background: #0072c5;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+        .badge-cxc {
+            background: #ffc107;
+            color: #000;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+        /* Progress bars */
+        .progress-sm {
+            height: 8px;
+            border-radius: 10px;
+        }
+        /* Estilos para la tabla */
+
+        #tablainstpagobs a:hover, .modaltarjetas a:hover {
+           color:#004b8f !important;
+        }
     </style>
 @endsection
 @section('content')
-    <style>
-        .tdline{
-            border:1px solid #f95a02 !important;
-
-        }
-        .tdlineff{
-            border-left:1px solid #fff !important;
-
-            color: white !important;
-            background-color: #f95a02 !important;
-        }
-    </style>
     <div class="row">
-        <form  method="post" name="form1" id="form1" action="/reporte/instpagobs">
-            <div class="col-md-3 order-last">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">REPORTE DE INSTRUMENTOS DE PAGO EN BOLÍVARES</h4>
+                    <p class="text-white-50 mb-0 small">
+                        @if($fecha1!='')
+                            <i class="bi bi-calendar-range me-2 text-white"></i>
+                            {{$fecha1}} - {{$fecha2}}
+                        @endif
+                    </p>
+                </div>
+                <div class="card-body  ">
 
-                        <div class="input-group">
-                            <input type="text" class="form-control" data-provider="flatpickr"
-                                   data-range-date="true" data-date-format="d/m/Y"
-                                   data-deafult-date="" name="fechasreport" readonly="readonly" value="{{$fechasreport}}"
-                            >
-                            <div class="input-group-text bg-primary border-primary text-white">
-                                <button type="submit" class="botoncal" >Consultar</button>
+                    <form  method="post" name="form1" id="form1">
+                        @csrf
+                        @method('POST')
+
+                        <div class="row mt-3">
+                            @if($fecha1!='')
+                                <div class="col-md-2">
+                                    <select class="form-select" data-choices onchange="$('#form1').submit()"
+                                            id="idsucu" name="fksucursal">
+                                        <option {{($fksucursal == '' or $fksucursal == 0)?'selected':''}} value="0">
+                                            🌐 Todas
+                                        </option>
+                                        @foreach($allsucursales as $sucu)
+                                            <option {{($sucu->id == $fksucursal)?'selected':''}} value="{{$sucu->id}}">
+                                                🏢 {{$sucu->descrip}}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @endif
+
+                            <div class="col-md-4">
+                                <div class="input-group">
+                                    <input type="text" class="form-control" data-provider="flatpickr"
+                                           data-range-date="true" data-date-format="d/m/Y"
+                                           name="fechasreport" readonly="readonly" value="{{$fechasreport}}"
+                                           placeholder="Seleccionar fechas">
+                                    <div class="input-group-text bg-primary border-primary text-white">
+                                        <button type="submit" class="botoncal">
+                                            <i class="bi bi-search"></i> Consultar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="input-group">
+                                    <div class="input-group-text bg-primary border-primary text-white w-100 justify-content-center">
+                                        <button onclick="loadingreport('/reporte/instpagodolares')" type="button" class="botoncal w-100">
+                                            <i class="bi bi-currency-dollar me-2"></i>
+                                            VER REPORTE EN USD
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary me-2" style="height: 43px;"
+                                        onclick="exportarExcel('tablainstpagobs')">
+                                    <i class="bi bi-file-excel"></i> Exportar a Excel
+                                </button>
                             </div>
                         </div>
 
-            </div>
-            @csrf
-            @method('POST')
-        </form>
-        <div class="col-md-12 ">
-            <div class="card-header mt-3 align-items-center justify-content-center text-center">
-                REPORTE DE INSTRUMENTOS DE PAGO - BOLIVARES
-                <br />
-                DESDE  {{$fecha1}} HASTA {{$fecha2}}
-            </div>
-            @php $totales = [];@endphp
-                <div class="table-responsive table-card mt-3">
-                    <table width="100%" border="0"    class="table table-borderless table-centered align-middle table-nowrap mb-0 mt-3">
-                        <tr bgcolor="#fff">
-                            <td width="30%" height="30"align="center" class="tdline" >SUCURSAL</td>
-                            @foreach($clases as $index => $data)
-                                <td width="" align="center" class="tdlineff" > {{$index}} </td>
-                            @endforeach
-                        </tr>
+                    </form>
 
-                        @if(isset($sucursales))
-                            @foreach($sucursales as $indexsuc => $puntos)
-                                @foreach($puntos as $indexpunto => $punto)
-                                    @php
-                                        $n       = 0;
-                                        $tmontos = 0;
-                                    @endphp
-
-                                    <tr @php if(($n%2)==0){echo 'bgcolor="#eee"'; }else{echo 'bgcolor="#fff"';} @endphp>
-                                        <td  height="30"align="left" class="tdline" >{{str_replace("APOCHI",'',$indexsuc)}}-{{$indexpunto}}</td>
-                                        @foreach($clases as $index => $data)
-                                            @php
-                                                if(!isset($totales[$index])) $totales[$index] = 0;
-                                                $totales[$index] += (isset($listado[$indexsuc][$indexpunto][$index]))? $listado[$indexsuc][$indexpunto][$index] : 0;
-                                            @endphp
-                                            <td width="" align="right" class=" tdline" > {{(isset($listado[$indexsuc][$indexpunto][$index]))?number_format($listado[$indexsuc][$indexpunto][$index],2,',','.'): ''}}</td>
-                                        @endforeach
-                                    </tr>
-                                    @php $n++; @endphp
-                                @endforeach
-                            @endforeach
-                        @endif
-                        <tr >
-                            <td height="30"align="left" class=" " > </td>
-                            @foreach($clases as $index => $data)
-                                <td width="" align="center" class=" " >  </td>
-                            @endforeach
-                        </tr>
-                        <tr bgcolor="#eee">
-                            <td height="30"align="left" class="tdline" >TOTALES</td>
-                            @foreach($clases as $index => $data)
-                                <td width="" align="right" class="tdline " > {{ number_format($totales[$index],2,',','.') }} </td>
-                            @endforeach
-                        </tr>
-                    </table>
                 </div>
-                <br>
-                <br>
-                <br>
             </div>
         </div>
     </div>
 
+    {!! $view !!}
+
 @endsection
+
 @section('scripts')
-    <!-- apexcharts -->
-    <script src="{{ URL::asset('build/libs/apexcharts/apexcharts.min.js') }}"></script>
+    <script>
+        function loadingreport(action) {
+            $('#form1').attr('action', action);
+            $('#contentReport').html(`
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Cargando reporte...</p>
+                </div>
+            `);
+            $('#form1').submit();
+        }
 
-    <!-- Vector map-->
-    <script src="{{ URL::asset('build/libs/jsvectormap/jsvectormap.min.js') }}"></script>
-    <script src="{{ URL::asset('build/libs/jsvectormap/world-merc.js') }}"></script>
-
-    <script src="{{ URL::asset('build/libs/list.js/list.min.js') }}"></script>
-
-    <!--Swiper slider js-->
-    <script src="{{ URL::asset('build/libs/swiper/swiper-bundle.min.js') }}"></script>
-
-    <!-- Dashboard init -->
-    <script src="{{ URL::asset('build/js/pages/dashboard-ecommerce.init.js') }}"></script>
-
-    <!-- App js -->
+        // Inicializar tooltips
+        $(document).ready(function() {
+            $('[data-bs-toggle="tooltip"]').tooltip();
+        });
+    </script>
     <script src="{{ URL::asset('build/js/app.js') }}"></script>
-
 @endsection

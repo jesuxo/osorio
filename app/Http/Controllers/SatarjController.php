@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Safact;
-use App\Models\Saipacxcw;
+use App\Models\Saipacxc;
 use App\Models\Saipavta;
+use App\Models\Saoper;
 use App\Models\Sasucursal;
 use App\Models\Satarj;
 use Carbon\Carbon;
@@ -25,11 +26,17 @@ class SatarjController extends Controller
         }
         $transacciones = 0;
         $fechasreport  = (isset($request->fechasreport))? $request->fechasreport : '';
-        $codoper       = (isset($request->codoper))? $request->codoper : '';
-        $fksucursal    = (isset($request->fksucursal ))? $request->fksucursal : '';
+        $codoper       = (isset($request->codoper)     )? $request->codoper      : '';
+        $fksucursal    = (isset($request->fksucursal ) )? $request->fksucursal   : '';
         $allsucursales = Sasucursal::where('fk_comercial', $comercialid)
             ->whereRaw("id in ($arraysucursales)")
             ->orderBy('descrip','asc')->get();
+
+        $operaciones = Saoper::select('codoper', 'descrip')
+            ->whereRaw("left(descrip,4) in ('VTA-','MIX-')")
+            ->where('comercial', $comercialid)
+            ->orderBy('descrip')
+            ->get();
 
         $fechasaux = str_replace(' ','',$fechasreport);
         $fec1 = $fec2 = $fecha1 = $fecha2 = '';
@@ -62,26 +69,35 @@ class SatarjController extends Controller
                 'saipavta.NumeroD',
                 'saipavta.Descrip',
                 'b.codtarj',
+                'f.codoper',
                 'b.clase',
-                DB::raw("(CASE TipoFac WHEN 'A' THEN monto WHEN 'B' THEN (monto * -1) ELSE 0 END) as bs"),
-                DB::raw("(CASE TipoFac WHEN 'Z' THEN monto WHEN 'W' THEN (monto * -1) ELSE 0 END) as bs"),
+                DB::raw("(CASE f.TipoFac WHEN 'A' THEN saipavta.monto WHEN 'B' THEN (saipavta.monto * -1) ELSE 0 END) as bs"),
                 DB::raw("b.descrip as tarjeta"),
                 DB::raw("c.descrip as sucursal")
             ])
                 ->with('factura')
                 ->join('satarj as b', 'CodPago', '=', 'b.codtarj')
                 ->join('sasucursal as c', 'saipavta.fk_sucursal', '=', 'c.id')
+                ->join('safact as f', function($join) {
+                    $join->on('saipavta.NumeroD',     '=', 'f.NumeroD')
+                        ->on('saipavta.TipoFac',     '=', 'f.TipoFac')
+                        ->on('saipavta.fk_sucursal', '=', 'f.fk_sucursal');
+                })
                 ->where('b.bs', 1)
                 ->whereRaw("saipavta.fk_sucursal in ($arraysucursales)")
                 ->where('b.comercial', $comercialid)
                 ->where('c.fk_comercial', $comercialid)
-                ->whereBetween('fechae', [
+                ->whereBetween('saipavta.fechae', [
                     Carbon::parse($fec1)->startOfDay()->format('Y-m-d H:i:s'),
                     Carbon::parse($fec2)->endOfDay()->format('Y-m-d H:i:s')
                 ]);
 
             if(isset($fksucursal) and $fksucursal != '' and $fksucursal > 0){
                 $montos =  $montos->where('saipavta.fk_sucursal', $fksucursal);
+            }
+
+            if(isset($codoper) and $codoper != '' and $codoper > 0){
+                $montos = $montos->where('f.codoper', $codoper);
             }
 
             $montos = $montos->get();
@@ -106,6 +122,7 @@ class SatarjController extends Controller
                     'monto'   => $monto->bs,
                     'TipoFac' => (isset($monto->TipoFac))? $monto->TipoFac: '',
                     'documen' => (isset($monto->NumeroD))? $monto->NumeroD: '',
+                    'codoper' => (isset($monto->codoper))? $monto->codoper: '',
                 ];
 
                 if(!isset($sucursales[$monto->sucursal][$monto->tarjeta.' '.$monto->codtarj])){
@@ -132,32 +149,38 @@ class SatarjController extends Controller
 
         if($fec1 != '') {
 
-            $montos = Saipacxcw::
+            $montos = Saipacxc::
             select([
-                'saipacxcw.fk_sucursal', 'b.codtarj', 'b.clase', 'saipacxcw.NroPpal',
-                'saipacxcw.Descrip',
-                'saipacxcw.codclie',
-                DB::raw(' (saipacxcw.monto) as bs'),
+                'saipacxc.fk_sucursal', 'b.codtarj', 'b.clase', 'saipacxc.NroPpal',
+                'saipacxc.Descrip',
+                'saipacxc.codclie',
+                DB::raw(' (saipacxc.monto) as bs'),
                 DB::raw("b.descrip as tarjeta"),
                 DB::raw("c.descrip as sucursal")
             ])
-                ->join('satarj as b', 'saipacxcw.CodPago', '=', 'b.codtarj')
-                ->join('sasucursal as c', 'saipacxcw.fk_sucursal', '=', 'c.id')
+                ->join('satarj as b'    , 'saipacxc.CodPago'    , '=', 'b.codtarj')
+                ->join('sasucursal as c', 'saipacxc.fk_sucursal', '=', 'c.id')
+                ->join('saacxc as d'    , 'saipacxc.NroPpal'    , '=', 'd.nrounico')
                 ->where('c.fk_comercial', $comercialid)
                 ->with('cliente')
-                ->whereRaw("saipacxcw.fk_sucursal in ($arraysucursales)")
+                ->whereRaw("d.tipocxc not in ('99','98') and d.fk_sucursal = saipacxc.fk_sucursal")
+                ->whereRaw("saipacxc.fk_sucursal in ($arraysucursales)")
                 ->with('cxc')
                 ->where('b.bs', 1)
                 ->where('b.comercial', $comercialid)
-                ->whereBetween('saipacxcw.created_at', [
+                ->whereBetween('saipacxc.created_at', [
                     Carbon::parse($fec1)->startOfDay()->format('Y-m-d H:i:s'),
                     Carbon::parse($fec2)->endOfDay()->format('Y-m-d H:i:s')
                 ]);
 
             if(isset($fksucursal) and $fksucursal != '' and $fksucursal > 0){
-                $montos =  $montos->where('saipacxcw.fk_sucursal', $fksucursal);
+                $montos =  $montos->where('saipacxc.fk_sucursal', $fksucursal);
             }
 
+            // Filtrar por codoper
+            if(isset($codoper) and $codoper != '' and $codoper > 0){
+                $montos = $montos->where('d.codoper', $codoper);
+            }
             $montos = $montos->get();
 
         }
@@ -174,6 +197,7 @@ class SatarjController extends Controller
                     'monto'   => $monto->bs,
                     'TipoFac' => '',
                     'documen' => (isset($monto->cxc->NumeroD))? $monto->cxc->NumeroD: '',
+                    'codoper' => $monto->codoper ?? '',
                 ];
 
                 if(!isset($sucursales[$monto->sucursal][$monto->tarjeta.' '.$monto->codtarj])){
@@ -201,17 +225,27 @@ class SatarjController extends Controller
         ksort($sucursales);
         ksort($clases);
 
-        return view('reporteInstPago', compact(
+        $ajax = ($request->ajax())?  1: 0;
+
+        $view = view('reporteInstPagoPartial', compact(
             'allsucursales',
             'fechasreport',
             'clases',
+            'ajax',
             'lines',
             'sucursales',
             'fecha1',
+            'codoper',
             'fecha2',
             'fksucursal',
             'transacciones',
-            'listado'));
+            'listado'))->render();
+
+        if($request->ajax()) {
+            return  $view;
+        }
+
+        return view('reporteInstPago', compact( 'fecha1', 'codoper','operaciones', 'fksucursal', 'sucursales', 'allsucursales', 'fechasreport', 'fecha2', 'view'));
     }
 
     public function instpagodolares(Request $request)
@@ -270,7 +304,6 @@ class SatarjController extends Controller
                 'b.codtarj',
                 'b.clase',
                 DB::raw("(CASE TipoFac WHEN 'A' THEN saipavta.dolares WHEN 'B' THEN (saipavta.dolares * -1) ELSE 0 END) as dolares"),
-                DB::raw("(CASE TipoFac WHEN 'Z' THEN saipavta.dolares WHEN 'W' THEN (saipavta.dolares * -1) ELSE 0 END) as dolares"),
                 DB::raw("b.descrip as tarjeta"),
                 DB::raw("c.descrip as sucursal")
             ])
@@ -327,27 +360,29 @@ class SatarjController extends Controller
 
                 }
 
-            $montos = Saipacxcw::
+            $montos = Saipacxc::
             select([
-                'saipacxcw.fk_sucursal', 'b.codtarj', 'b.clase', 'saipacxcw.NroPpal',
-                'saipacxcw.Descrip',
-                'saipacxcw.codclie',
-                DB::raw(' (saipacxcw.dolares) as dolares'),
+                'saipacxc.fk_sucursal', 'b.codtarj', 'b.clase', 'saipacxc.NroPpal',
+                'saipacxc.Descrip',
+                'saipacxc.codclie',
+                DB::raw(' (saipacxc.dolares) as dolares'),
                 DB::raw("b.descrip as tarjeta"),
                 DB::raw("c.descrip as sucursal")
             ])
-                ->join('satarj as b', 'saipacxcw.CodPago', '=', 'b.codtarj')
-                ->join('sasucursal as c', 'saipacxcw.fk_sucursal', '=', 'c.id')
+                ->join('satarj as b', 'saipacxc.CodPago', '=', 'b.codtarj')
+                ->join('sasucursal as c', 'saipacxc.fk_sucursal', '=', 'c.id')
+                ->join('saacxc as d', 'saipacxc.NroPpal', '=', 'd.nrounico')
+                ->whereRaw("d.tipocxc not in ('99','98')")
                 ->where('c.fk_comercial', $comercialid)
-                ->whereRaw("saipacxcw.fk_sucursal in ($arraysucursales)")
+                ->whereRaw("saipacxc.fk_sucursal in ($arraysucursales)")
                 ->with('cliente')
                 ->with('cxc')
                 ->where('b.dolares', 1)
                 ->where('b.comercial', $comercialid)
-                ->whereRaw("saipacxcw.created_at >= '$fec1 00:00:00' and saipacxcw.created_at <= '$fec2 23:59:00'");
+                ->whereRaw("saipacxc.created_at >= '$fec1 00:00:00' and saipacxc.created_at <= '$fec2 23:59:00'");
 
             if(isset($fksucursal) and $fksucursal != '' and $fksucursal > 0){
-                $montos =  $montos->where('saipacxcw.fk_sucursal', $fksucursal);
+                $montos =  $montos->where('saipacxc.fk_sucursal', $fksucursal);
             }
 
             $montos =  $montos->get();
@@ -393,6 +428,25 @@ class SatarjController extends Controller
 
         }
 
+        $ajax = ($request->ajax())?  1: 0;
+
+        $view = view('reporteInstPagoPartialDolares', compact(
+            'allsucursales',
+            'fechasreport',
+            'clases',
+            'ajax',
+            'lines',
+            'sucursales',
+            'fecha1',
+            'fecha2',
+            'fksucursal',
+            'transacciones',
+            'listado'))->render();
+
+        if($request->ajax()) {
+            return  $view;
+        }
+
         return view('reporteInstPagodolares', compact(
             'fechasreport',
             'clases',
@@ -401,6 +455,7 @@ class SatarjController extends Controller
             'fksucursal',
             'allsucursales',
             'fecha1',
+            'view',
             'fecha2',
             'transacciones',
             'listado'));
@@ -453,7 +508,6 @@ class SatarjController extends Controller
         $montos = DB::table('saipavta as a')
             ->select([ 'a.fk_sucursal', 'b.codtarj', 'b.clase', 'f.numerod', 'f.codclie',
                 DB::raw(" (CASE a.tipofac WHEN 'A' THEN a.dolares WHEN 'B' THEN (a.dolares * -1) ELSE 0 END) as dolares"),
-                DB::raw(" (CASE a.tipofac WHEN 'Z' THEN a.dolares WHEN 'W' THEN (a.dolares * -1) ELSE 0 END) as dolares"),
                 DB::raw("b.descrip as tarjeta"),
                 DB::raw("c.descrip as sucursal"),
                 DB::raw("f.descrip as cliente")
@@ -476,7 +530,7 @@ class SatarjController extends Controller
                 Carbon::parse($fec1)->startOfDay()->format('Y-m-d H:i:s'),
                 Carbon::parse($fec2)->endOfDay()->format('Y-m-d H:i:s')
             ])->get();
-        //  dd($montos->toSql(), $montos->getBindings(), $fec1,$fec2);
+      //  dd($montos->toSql(), $montos->getBindings(), $fec1,$fec2);
         $clases     = [];
         $clientes   = [];
         $listado    = [];
@@ -500,7 +554,7 @@ class SatarjController extends Controller
             }
 
 
-        $montos = DB::table('saipacxcw as a')
+        $montos = DB::table('saipacxc as a')
             ->select([
                 'a.fk_sucursal', 'b.codtarj', 'b.clase', 'g.codclie', 'd.numerod',
                 DB::raw(' (a.dolares) as dolares'),
@@ -510,9 +564,10 @@ class SatarjController extends Controller
             ])
             ->join('satarj as b', 'a.CodPago', '=', 'b.codtarj')
             ->join('sasucursal as c', 'a.fk_sucursal', '=', 'c.id')
-            ->join('saacxcw as d', 'a.NroPpal', '=', 'd.nrounico')
+            ->join('saacxc as d', 'a.NroPpal', '=', 'd.nrounico')
             ->join('saclie as g', 'd.codclie', '=', 'g.codclie')
             ->where('c.fk_comercial', $comercialid)
+            ->whereRaw("d.tipocxc not in ('99','98')")
             ->where('b.comercial', $comercialid) // Filtro directo
             ->where('b.codtarj', $codtarj)
             ->where('c.descrip', $fk_sucursal)

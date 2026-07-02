@@ -501,12 +501,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('transferencias/exportar/excel', [CwtransferenciasController::class, 'exportarExcel'])->name('transferencias.exportar.excel');
     Route::get('transferencias/exportar/estadisticas', [CwtransferenciasController::class, 'exportarEstadisticas'])->name('transferencias.exportar.estadisticas');
-
     Route::get('/transferencias/data', [CwtransferenciasController::class, 'getTransferenciasData'])->name('transferencias.data');
-
-    Route::get('imagen/transferencia/{id}', [ImagenController::class, 'transferencia'])
-        ->name('imagen.transferencia');
-
+    Route::get('imagen/transferencia/{id}', [ImagenController::class, 'transferencia'])->name('imagen.transferencia');
     Route::get('transferencias/categorias/{q}', [CwtransferenciasController::class, 'getCategorias'])->name('transferencias.categorias');
 
     Route::match(['get','post'],'/resumenVentas', [HomeController::class, 'resumenVentas'])->name('resumenVentas');

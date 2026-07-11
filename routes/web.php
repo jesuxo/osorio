@@ -10,6 +10,8 @@ use App\Http\Controllers\SaacxcwController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\SafactController;
 use App\Http\Controllers\SasucursalController;
+use App\Http\Controllers\ComprasController;
+use App\Http\Controllers\SerialesExtractorController;
 use App\Http\Controllers\SaprodController;
 use App\Http\Controllers\ChatConversationController;
 use App\Http\Controllers\SavendController;
@@ -116,6 +118,13 @@ Route::middleware(['auth'])->group(function () {
 
 
 Route::middleware(['auth'])->group(function () {
+
+
+    Route::get('/comprasseriales', [ComprasController::class, 'index'])->name('compras.seriales');
+    Route::post('/comprasextraer-seriales', [ComprasController::class, 'extraerSeriales'])->name('compras.extraer-seriales');
+
+    Route::get('extractor-seriales', [SerialesExtractorController::class, 'index'])->name('seriales.index');
+    Route::post('extractor-seriales', [SerialesExtractorController::class, 'extract'])->name('seriales.extract');
 
     Route::prefix('chat')->name('chat.')->group(function () {
         Route::get('/conversations', [ChatConversationController::class, 'index'])->name('index');
@@ -580,6 +589,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::match(['get','post'],'/reporte/venta', [HomeController::class, 'reporteventa'])->name('reporteventa');
     Route::post('/reporte/venta/sucu', [HomeController::class, 'reporteventasucu'])->name('reporteventasucu');
+
+
 
     Route::match(['get','post'],'/', [HomeController::class, 'index'])->name('index');
     Route::match(['get','post'],'/index', [HomeController::class, 'index'])->name('index');

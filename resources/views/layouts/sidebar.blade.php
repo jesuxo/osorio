@@ -160,6 +160,13 @@
                                     <a href="/instancias" class="nav-link" data-key="t-sub-categories">Instancias</a>
                                 </li>
                             @endif
+
+                            <li class="nav-item">
+                                <a href="/vistaSubirFactura" class="nav-link" data-key="t-sub-categories">
+                                    Extraer Seriales
+                                </a>
+                            </li>
+
                         </ul>
                     </div>
                 </li>

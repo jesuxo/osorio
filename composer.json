@@ -15,7 +15,7 @@
         "luecano/numero-a-letras": "^3.0",
         "maatwebsite/excel": "^3.1",
         "spatie/laravel-permission": "^6.17",
-        "spatie/pdf-to-text": "*",
+        "spatie/pdf-to-text": "^1.54",
         "vinkla/hashids": "^11.0"
     },
     "require-dev": {

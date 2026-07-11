@@ -28,7 +28,8 @@ class ComprasController extends Controller
             $texto = $this->extractText($path, $extension);
 
             // Debug: guardar texto extraído
-            Log::info('Texto extraído', ['texto' => substr($texto, 0, 500)]);
+            \Log::info('Texto extraído', ['texto' => substr($texto, 0, 500)]);
+            file_put_contents(storage_path('logs/texto_extraido_' . date('Y-m-d_H-i-s') . '.txt'), $texto);
 
             // Extraer seriales
             $seriales = $this->extractSerialNumbers($texto);
@@ -71,33 +72,21 @@ class ComprasController extends Controller
     private function extractFromPdf($path)
     {
         try {
-            // Intentar extraer texto directamente (más rápido y sin OCR)
-            Log::info('Extrayendo texto del PDF con Spatie');
-
+            // Configurar opciones para mejor extracción
             $text = Pdf::getText($path, null, [
                 '--layout',
                 '-f 1',
                 '-l 1'
             ]);
 
-            Log::info('Texto extraído con Spatie', ['length' => strlen($text)]);
-
             if (empty(trim($text))) {
-                Log::warning('No se obtuvo texto con Spatie, intentando con OCR');
                 $text = $this->extractWithOCR($path, 'pdf');
             }
 
             return $text;
         } catch (\Exception $e) {
             Log::warning('Error al leer PDF con Spatie: ' . $e->getMessage());
-
-            // Si falla Spatie, intentar con OCR
-            try {
-                return $this->extractWithOCR($path, 'pdf');
-            } catch (\Exception $ocrException) {
-                Log::error('OCR también falló: ' . $ocrException->getMessage());
-                throw new \Exception('No se pudo extraer texto del PDF. Asegúrate de que el archivo no esté dañado.');
-            }
+            return $this->extractWithOCR($path, 'pdf');
         }
     }
 
@@ -109,7 +98,6 @@ class ComprasController extends Controller
     private function extractWithOCR($path, $type)
     {
         try {
-            // Verificar Tesseract
             if (!shell_exec('which tesseract')) {
                 throw new \Exception('Tesseract OCR no está instalado. Instálalo con: sudo apt-get install tesseract-ocr tesseract-ocr-spa');
             }
@@ -125,6 +113,7 @@ class ComprasController extends Controller
             }
 
             $outputFile = $tempFile . '_output';
+            // Usar español e inglés para mejor reconocimiento
             $command = "tesseract \"{$inputFile}\" \"{$outputFile}\" -l spa+eng --psm 6 2>&1";
             exec($command, $output, $returnCode);
 
@@ -137,7 +126,7 @@ class ComprasController extends Controller
             // Limpiar archivos temporales
             @unlink($tempFile);
             @unlink($outputFile . '.txt');
-            if (isset($imageFile) && file_exists($imageFile)) {
+            if (isset($imageFile)) {
                 @unlink($imageFile);
             }
 
@@ -151,60 +140,31 @@ class ComprasController extends Controller
 
     private function convertPdfToImage($pdfPath, $imagePath)
     {
-        // Usar Ghostscript (más confiable y menos problemas de seguridad)
-        Log::info('Convirtiendo PDF a imagen con Ghostscript');
-
-        $command = "gs -dNOPAUSE -dBATCH -sDEVICE=png16m -r300 -dFirstPage=1 -dLastPage=1 -sOutputFile=\"{$imagePath}\" \"{$pdfPath}\" 2>&1";
-        exec($command, $output, $returnCode);
-
-        if ($returnCode !== 0) {
-            $errorMsg = implode("\n", $output);
-            Log::error('Error en Ghostscript: ' . $errorMsg);
-            throw new \Exception('Error al convertir PDF a imagen: ' . $errorMsg);
+        if (extension_loaded('imagick')) {
+            $imagick = new \Imagick();
+            $imagick->setResolution(300, 300);
+            $imagick->readImage($pdfPath . '[0]');
+            $imagick->setImageFormat('png');
+            $imagick->writeImage($imagePath);
+            $imagick->clear();
+            $imagick->destroy();
+        } else {
+            $command = "gs -dNOPAUSE -dBATCH -sDEVICE=png16m -r300 -dFirstPage=1 -dLastPage=1 -sOutputFile=\"{$imagePath}\" \"{$pdfPath}\" 2>&1";
+            exec($command, $output, $returnCode);
+            if ($returnCode !== 0) {
+                throw new \Exception('Error al convertir PDF a imagen: ' . implode("\n", $output));
+            }
         }
-
-        // Verificar que la imagen se creó
-        if (!file_exists($imagePath) || filesize($imagePath) === 0) {
-            throw new \Exception('No se pudo crear la imagen del PDF');
-        }
-
-        Log::info('Imagen creada correctamente', ['path' => $imagePath, 'size' => filesize($imagePath)]);
     }
 
     private function extractSerialNumbers($text)
     {
         $seriales = [];
 
+        // Debug: Ver el texto
         Log::info('Iniciando extracción de seriales', ['text_length' => strlen($text)]);
 
-        // Buscar todas las placas (AY...G)
-        preg_match_all('/AY\w{1}X\d{2}G/', $text, $plates);
-        $plates = $plates[0] ?? [];
 
-        // Buscar todos los chasis
-        preg_match_all('/8Z5CATBN\w{2}TM(\d{6})/', $text, $chassis);
-        $chassis = $chassis[1] ?? [];
-
-        // Buscar todos los motores
-        preg_match_all('/KW167FMM\*(\d{8})\*/', $text, $motors);
-        $motors = $motors[1] ?? [];
-
-        Log::info('Cantidades encontradas', [
-            'chassis' => count($chassis),
-            'motors' => count($motors),
-            'plates' => count($plates)
-        ]);
-
-        $count = min(count($chassis), count($motors), count($plates));
-
-        for ($i = 0; $i < $count; $i++) {
-            $chasisLast4 = substr($chassis[$i], -4);
-            $motorLast4 = substr($motors[$i], -4);
-            $placa = $plates[$i];
-
-            $serial = "SC {$chasisLast4} SM {$motorLast4} PLACA {$placa}";
-            $seriales[] = $serial;
-        }
 
         return $seriales;
     }

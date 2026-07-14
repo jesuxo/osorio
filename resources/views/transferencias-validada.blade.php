@@ -205,12 +205,13 @@
                                                     <td>
                                                         @php
                                                             $tipoColor = match($transf->tipo) {
-                                                                'venta' => 'success',
-                                                                'pago' => 'info',
-                                                                'ahorro' => 'warning',
+                                                                'venta'     => 'success',
+                                                                'efectivo'  => 'success',
+                                                                'pago'      => 'info',
+                                                                'ahorro'    => 'warning',
                                                                 'proveedor' => 'primary',
-                                                                'gasto' => 'danger',
-                                                                default => 'secondary'
+                                                                'gasto'     => 'danger',
+                                                                default     => 'secondary'
                                                             };
                                                         @endphp
                                                         <span class="badge bg-{{ $tipoColor }}">{{ $transf->tipo_texto }}</span>

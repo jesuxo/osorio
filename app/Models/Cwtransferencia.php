@@ -75,12 +75,13 @@ class Cwtransferencia extends Model
 
     public function getTipoTextoAttribute(){
         $tipos = [
-            'venta' => '💰 Venta/Cobranza',
-            'pago' => '💸 Pago General',
-            'ahorro' => '🏦 Ahorro',
+            'venta'     => '💰 Venta/Cobranza',
+            'efectivo'  => '💰 Cambio Efectivo',
+            'pago'      => '💸 Pago General',
+            'ahorro'    => '🏦 Ahorro',
             'proveedor' => '📦 Pago Proveedor',
-            'gasto' => '🧾 Gasto',
-            'otro' => '📌 Otro'
+            'gasto'     => '🧾 Gasto',
+            'otro'      => '📌 Otro'
         ];
         return $tipos[$this->tipo] ?? $this->tipo;
     }

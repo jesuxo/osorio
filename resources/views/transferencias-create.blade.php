@@ -424,7 +424,7 @@
                                             <select class="form-control" name="tipo" id="tipo" required>
                                                 <option value="">Seleccione un tipo</option>
                                                 <option value="venta" data-color="success" selected>💰 Venta / Cobranza</option>
-                                                <option value="efectivo" data-color="success" selected>💰 Cambio Efectivo</option>
+                                                <option value="efectivo" data-color="success" >💰 Cambio Efectivo</option>
                                                 <option value="pago" data-color="info">💸 Pago General</option>
                                                 <option value="ahorro" data-color="warning">🏦 Ahorro</option>
                                                 <option value="proveedor" data-color="primary">📦 Pago a Proveedor</option>

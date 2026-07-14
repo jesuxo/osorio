@@ -992,7 +992,7 @@
                 <div class="chat-launcher-preview " style="display: none" >
                     <!---->
                     <div class="app-conversation-summary  firstmessage">
-                        ¿Tienes preguntas sobre nuestra empresa o productos? ¡Estoy para ayudarte!
+                        ¿Tienes preguntas sobre nuestra empresa o productos? ¡Estoy para apoyarte!
                     </div>
                 </div>
             </div>
@@ -1026,7 +1026,7 @@
                 <div class="app-mobile-nel-scrollfix chat-messages chat-messages--chatbot app-scroll-calculate">
                     <div class="app-conversation-parts chat-messages__inner ">
                         <div class="chat-message-welcome">
-                            <p>¿Tienes preguntas sobre nuestra empresa o productos? ¡Estoy para ayudarte!</p>
+                            <p>¿Tienes preguntas sobre nuestra empresa o productos? ¡Estoy para apoyarte!</p>
                             <div class="chat-legal">
                                 <div class=" ">
                                     <a href="https://instagram.com/osoriogroup" target="_blank" class="btn btn-primary btn-hover" style="color: white !important;">
@@ -1212,17 +1212,7 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
-        /* Fade-in animation */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+
 
         .bg-white, [class*="col-"] {
             animation: fadeIn 0.6s ease-out;
@@ -1233,23 +1223,116 @@
 @section('scripts')
 
     <script>
-        const chatMessages   = document.getElementById('chatMessages');
-        const messageInput   = document.getElementById('message');
-        const sendButton     = document.getElementById('sendButton');
-        const csrfToken      = document.querySelector('meta[name="csrf-token"]').content;
-        let   isLoading      = false;
-        var   counter        = 1;
-        var   firstmessage   = 0;
-        let   conversationId = null; // Almacenar el ID de conversación
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('message');
+        const sendButton = document.getElementById('sendButton');
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        let isLoading = false;
+        var counter = 1;
+        var firstmessage = 0;
+        let conversationId = null;
+        let isChatInitialized = false;
+
+        // Inicializar el chat al cargar la página
+        $(document).ready(function() {
+            initializeChat();
+            $('.chat-launcher-preview').show();
+
+            // Enter para enviar mensaje
+            $('#message').on('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        });
+
+        function activechat() {
+            $('.app-chat-conversation').addClass('active');
+            $('.chat-launcher-preview').hide();
+            setTimeout(() => {
+                $('#message').focus();
+                scrollToBottom();
+            }, 300);
+        }
+
+        async function initializeChat() {
+            if (isChatInitialized) return;
+
+            try {
+                const response = await fetch('{{ route("chat.initialize") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({}) // Cuerpo vacío pero necesario
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al inicializar el chat');
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    conversationId = data.chat_conversation_id;
+                    isChatInitialized = true;
+
+                    // Si hay historial, cargarlo
+                    if (data.history && data.history.length > 0) {
+                        // Limpiar mensajes de bienvenida existentes
+                        const welcomeDiv = document.querySelector('.chat-message-welcome');
+                        if (welcomeDiv) {
+                            welcomeDiv.style.display = 'none';
+                        }
+
+                        // Cargar historial
+                        data.history.forEach(msg => {
+                            if (msg.sender === 'assistant') {
+                                if (firstmessage === 0) {
+                                    // Actualizar mensaje de preview
+                                    $('.firstmessage').html(msg.message);
+                                    firstmessage = 1;
+                                    $('.chat-launcher-preview').show();
+                                }
+                                addMessage(msg.message, 'bot', msg.time);
+                            } else if (msg.sender === 'user') {
+                                addMessage(msg.message, 'user', msg.time);
+                            }
+                        });
+
+                        scrollToBottom();
+                    }
+
+                    // Si es nueva conversación, mostrar mensaje de bienvenida
+                    if (data.is_new && data.welcome_message) {
+                        // El mensaje de bienvenida ya está en el historial
+                        // pero podemos actualizar el preview
+                        $('.firstmessage').html(data.welcome_message.message || data.welcome_message);
+                        $('.chat-launcher-preview').show();
+                    }
+                }
+            } catch (error) {
+                console.error('Error inicializando chat:', error);
+                // Mostrar un mensaje de error en el chat
+                addMessage('Error al conectar con el servidor. Por favor, recarga la página.', 'bot error-message');
+            }
+        }
 
         async function sendMessage() {
-
             const message = messageInput.value.trim();
 
             if (!message || isLoading) return;
 
+            // Asegurar que el chat está inicializado
+            if (!isChatInitialized) {
+                await initializeChat();
+            }
+
             // Mostrar mensaje del usuario
-            addMessage(message, 'user', null);
+            addMessage(message, 'user');
             messageInput.value = '';
 
             // Mostrar indicador de escritura
@@ -1267,8 +1350,8 @@
                         'Accept': 'application/json'
                     },
                     body: JSON.stringify({
-                        message,
-                        conversation_id: conversationId
+                        message: message,
+                        chat_conversation_id: conversationId
                     })
                 });
 
@@ -1281,35 +1364,78 @@
                 const data = await response.json();
 
                 // Actualizar conversationId si es nuevo
-                if (data.conversation_id && !conversationId) {
-                    conversationId = data.conversation_id;
+                if (data.chat_conversation_id && !conversationId) {
+                    conversationId = data.chat_conversation_id;
                 }
 
-                if (data.success) {
-                    addMessage(data.reply, 'bot', data.timestamp);
-
+                // Si la respuesta incluye productos, mostrarlos de forma especial
+                if (data.products && data.products.length > 0) {
+                    showProductsResponse(data);
+                } else if (data.success) {
+                    addMessage(data.reply, 'bot');
                 } else {
-                    addMessage('Error: ' + data.reply, 'bot error-message', null);
+                    addMessage('Error: ' + (data.reply || 'No se pudo procesar tu mensaje'), 'bot error-message');
                 }
 
             } catch (error) {
                 console.error('Error:', error);
                 removeTypingIndicator(typingId);
-                addMessage('Error de conexión. Por favor verifica tu internet e intenta de nuevo.', 'bot error-message', null);
+                addMessage('Error de conexión. Por favor verifica tu internet e intenta de nuevo.', 'bot error-message');
 
             } finally {
                 setLoading(false);
             }
         }
 
-        function updateMessageCounter() {
-            var counter = parseInt($('.bounce-once').html() || 0);
-            $('.bounce-once').html(counter + 1);
-            $('.bounce-once').show();
+        // Nueva función para mostrar productos de forma estructurada
+        function showProductsResponse(data) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message message-income product-message';
 
+            let productsHTML = `
+            <div class="chat-message-avatar">
+                <img src="/images/avatar.png" width="50" height="50" alt="Avatar">
+            </div>
+            <div class="chat-message-globe product-list">
+                <div class="product-header">
+                    <strong>${data.mensaje || 'Productos disponibles:'}</strong>
+                </div>
+                <div class="product-grid">
+        `;
+
+            data.products.forEach(product => {
+                productsHTML += `
+                <div class="product-item">
+                    <div class="product-info">
+                        <div class="product-name"><strong>${product.descrip}</strong></div>
+                        ${product.marca ? `<div class="product-brand">Marca: ${product.marca}</div>` : ''}
+                        ${product.codprod ? `<div class="product-code">Código: ${product.codprod}</div>` : ''}
+                        ${product.precio > 0 ? `<div class="product-price">Precio: $${Number(product.precio).toFixed(2)}</div>` : ''}
+                        <div class="product-stock ${product.hayenexistencia > 0 ? 'in-stock' : 'out-of-stock'}">
+                            ${product.hayenexistencia > 0 ? `✅ Disponible: ${product.hayenexistencia} unidades` : '❌ No disponible'}
+                        </div>
+                    </div>
+                </div>
+            `;
+            });
+
+            const now = new Date();
+            const timestamp = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+            productsHTML += `
+                </div>
+                ${data.total_products > 0 ? `<div class="product-footer">${data.total_products} productos encontrados</div>` : ''}
+                <div class="chat__timestamp">${timestamp}</div>
+            </div>
+        `;
+
+            messageDiv.innerHTML = productsHTML;
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+            updateMessageCounter();
         }
 
-        function addMessage(text, type,  timestamp = null) {
+        function addMessage(text, type, timestamp = null) {
             const messageDiv = document.createElement('div');
 
             // Convertir URLs en links
@@ -1323,7 +1449,11 @@
                 timestamp = `${hours}:${minutes}`;
             }
 
-            // Ocultar mensajes de bienvenida por defecto si es necesario
+            // Ocultar mensaje de bienvenida si existe
+            const welcomeDiv = document.querySelector('.chat-message-welcome');
+            if (welcomeDiv && type !== 'welcome') {
+                welcomeDiv.style.display = 'none';
+            }
 
             if (type === 'user') {
                 messageDiv.className = 'chat-message message-income';
@@ -1334,12 +1464,13 @@
                 </div>
             `;
             } else {
+                const isError = type.includes('error');
                 messageDiv.className = 'chat-message message-income';
                 messageDiv.innerHTML = `
                 <div class="chat-message-avatar">
-                    <img src="/images/avatar.png" width="50" height="50" alt="Ciro">
+                    <img src="/images/avatar.png" width="50" height="50" alt="Avatar">
                 </div>
-                <div class="chat-message-globe">
+                <div class="chat-message-globe" style="${isError ? 'border-color: #dc3545; background-color: #f8d7da;' : ''}">
                     ${linkedText}
                     <div class="chat__timestamp">${timestamp}</div>
                 </div>
@@ -1353,9 +1484,16 @@
 
         function showTypingIndicator() {
             const typingDiv = document.createElement('div');
-            typingDiv.className = 'message bot-message typing-indicator';
+            typingDiv.className = 'chat-message message-income typing-indicator';
             typingDiv.id = 'typing-' + Date.now();
-            typingDiv.innerHTML = '<span class="dot-animation">Escribiendo</span>';
+            typingDiv.innerHTML = `
+            <div class="chat-message-avatar">
+                <img src="/images/avatar.png" width="50" height="50" alt="Avatar">
+            </div>
+            <div class="chat-message-globe">
+                <span class="dot-animation">Escribiendo</span>
+            </div>
+        `;
             chatMessages.appendChild(typingDiv);
             scrollToBottom();
             return typingDiv.id;
@@ -1369,32 +1507,95 @@
         }
 
         function scrollToBottom() {
-            $('.app-conversation-parts.chat-messages__inner').scrollTop(
-                $('.app-conversation-parts.chat-messages__inner')[0]?.scrollHeight || 0
-            );
-
-            // Backup para otros contenedores
-            $('.app-chat-conversations.chat-messages').scrollTop(
-                $('.app-chat-conversations.chat-messages')[0]?.scrollHeight || 0
-            );
-
+            const containers = document.querySelectorAll('.app-conversation-parts.chat-messages__inner, .app-chat-conversations.chat-messages');
+            containers.forEach(container => {
+                container.scrollTop = container.scrollHeight;
+            });
         }
 
         function setLoading(loading) {
             isLoading = loading;
             messageInput.disabled = loading;
             sendButton.disabled = loading;
-            sendButton.textContent = loading ? 'Enviando...' : 'Enviar';
 
-            if(!loading) {
-                $('#sendButton').html('<span class="app-chat-form-submit chat-message-send__messageSubmit "></span>');
-                $('#message').focus().select();
+            if (loading) {
+                $('#sendButton').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+            } else {
+                $('#sendButton').html('<span class="app-chat-form-submit chat-message-send__messageSubmit"></span>');
+                setTimeout(() => {
+                    $('#message').focus().select();
+                }, 100);
             }
         }
 
-        // Agregar animación para el indicador de escritura
-        const style = document.createElement('style');
-        style.textContent = `
+        function updateMessageCounter() {
+            var counterEl = $('.bounce-once');
+            var currentCount = parseInt(counterEl.html() || 0);
+            counterEl.html(currentCount + 1);
+            counterEl.show();
+        }
+
+        // Agregar estilos para productos
+        const productStyles = document.createElement('style');
+        productStyles.textContent = `
+        .product-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .product-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            background: #f9f9f9;
+            transition: all 0.3s ease;
+        }
+        .product-item:hover {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .product-name {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        .product-brand {
+            font-size: 12px;
+            color: #666;
+        }
+        .product-code {
+            font-size: 11px;
+            color: #888;
+        }
+        .product-price {
+            font-size: 16px;
+            font-weight: bold;
+            color: #0072c5;
+            margin: 4px 0;
+        }
+        .product-stock {
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .in-stock {
+            color: #28a745;
+        }
+        .out-of-stock {
+            color: #dc3545;
+        }
+        .product-header {
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+        .product-footer {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            border-top: 1px solid #eee;
+            padding-top: 8px;
+        }
         .dot-animation::after {
             content: '...';
             animation: dots 1.5s steps(4, end) infinite;
@@ -1403,78 +1604,20 @@
             overflow: hidden;
             vertical-align: bottom;
         }
-
         @keyframes dots {
             0%, 20% { width: 0; }
             40% { width: 0.5em; }
             60% { width: 1em; }
             80%, 100% { width: 1.5em; }
         }
+        .error-message .chat-message-globe {
+            border-color: #dc3545 !important;
+            background-color: #f8d7da !important;
+        }
+        .chat-message-welcome {
+            display: block !important;
+        }
     `;
-        document.head.appendChild(style);
-
-        $( document ).ready(function() {
-            //initializeChat();
-
-            $('.chat-launcher-preview').show();
-        });
-
-        function activechat(){
-            $('.app-chat-conversation').addClass('active');
-            $('.chat-launcher-preview').hide();
-            $('#message').select();
-            setTimeout(500,scrollToBottom());
-
-        }
-
-        async function initializeChat() {
-            try {
-                const now = new Date();
-                const hours = now.getHours().toString().padStart(2, '0');
-                const minutes = now.getMinutes().toString().padStart(2, '0');
-                timestamp = `${hours}:${minutes}`;
-
-                const response = await fetch('{{ route("chat.initialize") }}', {
-                    method: 'POST',
-                    data:{timestamp:timestamp},
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    }
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    conversationId = data.conversation_id;
-
-                    // Si hay historial, cargarlo
-                    if (data.history && data.history.length > 0) {
-                        // Limpiar mensajes de bienvenida por defecto
-                        // $('.chat-message-welcome').hide();
-
-                        // Cargar historial
-                        data.history.forEach(msg => {
-                            if (msg.sender === 'assistant') {
-                                if(firstmessage==0){
-                                    $('.firstmessage').html(msg.message);
-                                    firstmessage = 1;
-                                    $('.chat-launcher-preview').show();
-                                }
-                                addMessage(msg.message, 'bot', msg.time);
-                            } else if (msg.sender === 'user') {
-                                addMessage(msg.message, 'user', msg.time);
-                            }
-                        });
-
-
-                        scrollToBottom();
-                    }
-                }
-            } catch (error) {
-                console.error('Error inicializando chat:', error);
-            }
-        }
+        document.head.appendChild(productStyles);
     </script>
 @endsection

@@ -8,7 +8,6 @@ use App\Models\ChatMessage;
 use App\Services\ChatbotService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log;
 
 class ChatbotController extends Controller
 {
@@ -39,11 +38,11 @@ class ChatbotController extends Controller
 
             // Crear nueva conversación
             $conversation = ChatConversation::create([
-                'session_id' => $sessionId,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'status' => 'active',
-                'started_at' => now(),
+                'session_id'   => $sessionId,
+                'ip_address'   => $request->ip(),
+                'user_agent'   => $request->userAgent(),
+                'status'       => 'active',
+                'started_at'   => now(),
                 'visitor_name' => $this->generateVisitorName($sessionId)
             ]);
 
@@ -64,9 +63,9 @@ class ChatbotController extends Controller
         return response()->json([
             'success' => true,
             'chat_conversation_id' => $conversation->id,
-            'is_new' => $isNewConversation,
-            'history' => $history,
-            'welcome_message' => $isNewConversation ? $history[0] ?? null : null
+            'is_new'               => $isNewConversation,
+            'history'              => $history,
+            'welcome_message'      => $isNewConversation ? $history[0] ?? null : null
         ]);
     }
 
@@ -78,7 +77,7 @@ class ChatbotController extends Controller
     public function message(Request $request)
     {
         $request->validate([
-            'message' => 'required|string',
+            'message'              => 'required|string',
             'chat_conversation_id' => 'sometimes|integer'
         ]);
 
@@ -101,11 +100,11 @@ class ChatbotController extends Controller
         // Si no hay conversación activa, crear una nueva
         if (!$conversation) {
             $conversation = ChatConversation::create([
-                'session_id' => $sessionId,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'status' => 'active',
-                'started_at' => now(),
+                'session_id'   => $sessionId,
+                'ip_address'   => $request->ip(),
+                'user_agent'   => $request->userAgent(),
+                'status'       => 'active',
+                'started_at'   => now(),
                 'visitor_name' => $this->generateVisitorName($sessionId)
             ]);
         }
@@ -132,24 +131,32 @@ class ChatbotController extends Controller
         // Guardar mensaje del usuario
         $userMessage = ChatMessage::create([
             'chat_conversation_id' => $conversation->id,
-            'sender' => 'user',
-            'message' => $request->message,
-            'metadata' => [
+            'sender'               => 'user',
+            'message'              => $request->message,
+            'metadata'             => [
                 'timestamp' => now(),
-                'ip' => $request->ip()
+                'ip'        => $request->ip()
             ]
         ]);
 
+
         $result = $this->chatbotService->processMessage($prompt, $conversation->id);
+
+        // Si la respuesta incluye productos, estructura la respuesta
+        if (isset($result['products']) && !empty($result['products'])) {
+            return response()->json([
+                'success'        => true,
+                'reply'          => $result['reply'],
+                'products'       => $result['products'],
+                'total_products' => $result['total_products'] ?? 0,
+                'mensaje'        => $result['mensaje'] ?? ''
+            ]);
+        }
 
         return response()->json($result);
 
     }
 
-
-    /**
-     * Verifica el estado del servicio
-     */
     public function health(): JsonResponse
     {
         $health = $this->chatbotService->health();
@@ -228,7 +235,7 @@ class ChatbotController extends Controller
     private function getGreeting()
     {
         $hour = now()->hour;
-        $default = " Soy Olivia, tu asistente virtual de CIRO. ¿En qué puedo ayudarte?";
+        $default = " Soy Oso, tu asistente virtual del Grupo Osorio. ¿En qué puedo apoyarte?";
 
         if ($hour >= 6 && $hour < 12) {
             return "Hola buenos días, $default";

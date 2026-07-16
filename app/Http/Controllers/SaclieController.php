@@ -510,7 +510,7 @@ class SaclieController extends Controller
             }
 
         $clientes = Saclie::whereRaw("codclie not in (select codclie from sacliesucursal where fk_sucursal=$sucursalid )")->limit('30')->get();
- 
+
         $prodfalt = Saprod::whereRaw("codprod not in (select codprod from saprodsucursal where fk_sucursal=$sucursalid )")->limit('30')->get();
 
         $prodflag = 0;
@@ -518,7 +518,7 @@ class SaclieController extends Controller
             $prodflag = 1;
         }
 
-        return response()->json(['success'=>'success', 'newclientes' => $clientes, 'prodflag' => $prodflag, 'newtransfer' => $transferencias]);
+        return response()->json(['success'=>'success', 'newclientes' => $clientes, 'prodflag' => $prodflag]);
     }
 
     public function create()

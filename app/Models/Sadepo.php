@@ -10,7 +10,5 @@ class Sadepo extends Model
     use HasFactory;
 
     protected $table    = 'sadepo';
-    protected $fillable = ['codubic', 'descrip', 'venta', 'exhibicion', 'servicio'];
-
-
+    protected $fillable = ['codubic', 'descrip', 'venta', 'exhibicion', 'servicio', 'consignacion'];
 }

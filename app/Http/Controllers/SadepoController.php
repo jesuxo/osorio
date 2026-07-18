@@ -41,6 +41,7 @@ class SadepoController extends Controller
             $newDepo->exhibicion = ($request->exhibicion)? 1: 0;
             $newDepo->servicio   = ($request->servicio)? 1: 0;
             $newDepo->venta      = ($request->venta)? 1: 0;
+            $newDepo->consignacion = ($request->consignacion)? 1: 0; // NUEVO CAMPO
             $newDepo->activo     = 1;
             $newDepo->comercial  = $comercialid;
             $newDepo->save();
@@ -48,7 +49,20 @@ class SadepoController extends Controller
         }else{
             return response()->json(['error'=>'error' ]);
         }
+    }
 
+    public function update(Request $request, $id)
+    {
+        $deposito = Sadepo::find($id);
+        $deposito->descrip    = $request->descrip;
+        $deposito->exhibicion = ($request->exhibicion == 1 )? 1: 0;
+        $deposito->venta      = ($request->venta      == 1 )? 1: 0;
+        $deposito->servicio   = ($request->servicio   == 1 )? 1: 0;
+        $deposito->consignacion = ($request->consignacion == 1 )? 1: 0; // NUEVO CAMPO
+        $deposito->activo     = ($request->activo=='Active')? 1: 0;
+        $deposito->save();
+
+        return response()->json(['success'=>'success',"actualizado"=>111]);
     }
 
     public function json()
@@ -65,6 +79,7 @@ class SadepoController extends Controller
                 "exhibicion" => $item->exhibicion == 1 ? "1" : "0",
                 "venta"      => $item->venta      == 1 ? "1" : "0",
                 "servicio"   => $item->servicio   == 1 ? "1" : "0",
+                "consignacion" => $item->consignacion == 1 ? "1" : "0", // NUEVO CAMPO
                 "activo"     => $item->activo ? "Active" : "Inactive"
             ];
         }
@@ -82,18 +97,6 @@ class SadepoController extends Controller
         //
     }
 
-    public function update(Request $request, $id)
-    {
-        $deposito = Sadepo::find($id);
-        $deposito->descrip    = $request->descrip;
-        $deposito->exhibicion = ($request->exhibicion == 1 )? 1: 0;
-        $deposito->venta      = ($request->venta      == 1 )? 1: 0;
-        $deposito->servicio   = ($request->servicio   == 1 )? 1: 0;
-        $deposito->activo     = ($request->activo=='Active')? 1: 0;
-        $deposito->save();
-
-        response()->json(['success'=>'success',"actializado"=>111]);
-    }
 
     public function destroy($id)
     {

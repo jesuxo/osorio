@@ -112,6 +112,7 @@
                                     <th class="sort" data-sort="exhibicion">Exhibici&oacute;n</th>
                                     <th class="sort" data-sort="venta">Venta</th>
                                     <th class="sort" data-sort="servicio">Servicio</th>
+                                    <th class="sort" data-sort="consignacion">Consignaci&oacute;n</th>
                                     <th class="sort" data-sort="accountStatus">Status</th>
                                     <th>Action</th>
                                 </tr>
@@ -220,6 +221,13 @@
                                     <input class="form-check-input mt-0" type="checkbox" id="servicio-field" name="servicio" value="1">
                                 </div>
                                 <div class="form-control">Servicio? </div>
+                            </div>
+
+                            <div class="mb-3 input-group">
+                                <div class="input-group-text">
+                                    <input class="form-check-input mt-0" type="checkbox" id="consignacion-field" name="consignacion" value="1">
+                                </div>
+                                <div class="form-control">Consignaci&oacute;n? </div>
                             </div>
 
                             <div>
@@ -341,9 +349,10 @@
                     '<span class="badge badge-soft-success text-uppercase">Active</span>' :
                     '<span class="badge badge-soft-danger text-uppercase">Inactive</span>';
 
-                const exhibicionIcon = deposito.exhibicion == "1" ? '<i class="bi bi-check-lg text-success"></i>' : '<i class="bi bi-x-lg text-danger"></i>';
-                const ventaIcon = deposito.venta == "1" ? '<i class="bi bi-check-lg text-success"></i>' : '<i class="bi bi-x-lg text-danger"></i>';
-                const servicioIcon = deposito.servicio == "1" ? '<i class="bi bi-check-lg text-success"></i>' : '<i class="bi bi-x-lg text-danger"></i>';
+                const exhibicionIcon   = deposito.exhibicion == "1" ? '<i class="bi bi-check-lg text-success"></i>' : '<i class="bi bi-x-lg text-danger"></i>';
+                const ventaIcon        = deposito.venta == "1" ? '<i class="bi bi-check-lg text-success"></i>' : '<i class="bi bi-x-lg text-danger"></i>';
+                const servicioIcon     = deposito.servicio == "1" ? '<i class="bi bi-check-lg text-success"></i>' : '<i class="bi bi-x-lg text-danger"></i>';
+                const consignacionIcon = deposito.consignacion == "1" ? '<i class="bi bi-check-lg text-success"></i>' : '<i class="bi bi-x-lg text-danger"></i>';
 
                 const row = `
                     <tr>
@@ -357,6 +366,7 @@
                         <td class="exhibicion text-center">${exhibicionIcon}</td>
                         <td class="venta text-center">${ventaIcon}</td>
                         <td class="servicio text-center">${servicioIcon}</td>
+                        <td class="consignacion text-center">${consignacionIcon}</td>
                         <td class="accountStatus">${statusBadge}</td>
                         <td>
                             <div class="d-flex gap-2">
@@ -457,9 +467,10 @@
             $('#codubic-field').val(deposito.codubic);
             $('#codubic-field').prop('disabled', true);
             $('#descrip-field').val(deposito.descrip);
-            $('#exhibicion-field').prop('checked', deposito.exhibicion == "1");
-            $('#venta-field').prop('checked', deposito.venta == "1");
-            $('#servicio-field').prop('checked', deposito.servicio == "1");
+            $('#exhibicion-field')  .prop('checked', deposito.exhibicion   == "1");
+            $('#venta-field')       .prop('checked', deposito.venta        == "1");
+            $('#servicio-field')    .prop('checked', deposito.servicio     == "1");
+            $('#consignacion-field').prop('checked', deposito.consignacion == "1");
 
             if (choicesStatus) {
                 choicesStatus.destroy();
@@ -483,6 +494,7 @@
             $('#exhibicion-field').prop('checked', false);
             $('#venta-field').prop('checked', false);
             $('#servicio-field').prop('checked', false);
+            $('#consignacion-field').prop('checked', false);
 
             if (choicesStatus) {
                 choicesStatus.destroy();
@@ -612,32 +624,37 @@
         $('#depositoForm').on('submit', function(e) {
             e.preventDefault();
 
-            const codubic = $('#codubic-field').val().trim();
-            const descrip = $('#descrip-field').val().trim();
-            const exhibicion = $('#exhibicion-field').is(':checked') ? 1 : 0;
-            const venta = $('#venta-field').is(':checked') ? 1 : 0;
-            const servicio = $('#servicio-field').is(':checked') ? 1 : 0;
-            const activo = $('#account-status-field').val();
+            const codubic      = $('#codubic-field').val().trim();
+            const descrip      = $('#descrip-field').val().trim();
+            const exhibicion   = $('#exhibicion-field').is(':checked')   ? 1 : 0;
+            const venta        = $('#venta-field').is(':checked')        ? 1 : 0;
+            const servicio     = $('#servicio-field').is(':checked')     ? 1 : 0;
+            const activo       = $('#account-status-field').val();
+            const consignacion = $('#consignacion-field').is(':checked') ? 1 : 0;
+
 
             if (!codubic) {
                 showError('El código del depósito es requerido');
                 return;
             }
+
             if (!descrip) {
                 showError('La descripción del depósito es requerida');
                 return;
             }
-            if (exhibicion === 0 && venta === 0 && servicio === 0) {
+
+            if (exhibicion === 0 && venta === 0 && servicio === 0 && consignacion === 0) {
                 showError('Debe seleccionar al menos una función del depósito');
                 return;
             }
 
             const formData = {
-                codubic: codubic,
-                descrip: descrip,
-                exhibicion: exhibicion,
-                venta: venta,
-                servicio: servicio,
+                codubic      : codubic,
+                descrip      : descrip,
+                exhibicion   : exhibicion,
+                venta        : venta,
+                servicio     : servicio,
+                consignacion : consignacion,
                 activo: activo
             };
 

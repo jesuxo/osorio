@@ -255,7 +255,7 @@
                                                         $totalesSucursales[$sucursal->id] += $totalSucursal;
                                                     @endphp
                                                     <span class="badge bg-info badge-cantidad">
-                                                        {{ number_format($totalSucursal, 0, ',', '.') }}
+
                                                     </span>
                                                 @else
                                                     <span class="text-muted">-</span>
@@ -284,7 +284,7 @@
                                                 <td class="text-center">
                                                     @if($sucursal->id == $sucursalKey)
                                                         <span class="badge bg-secondary badge-cantidad">
-                                                            {{ number_format(array_sum(array_column($sucursalData['marcas'], 'cantidad')), 0, ',', '.') }}
+
                                                         </span>
                                                     @else
                                                         <span class="text-muted">-</span>

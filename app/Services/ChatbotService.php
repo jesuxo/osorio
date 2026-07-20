@@ -397,6 +397,19 @@ class ChatbotService
         return $result;
     }
 
+    // En ChatbotService
+    private function findRelatedProducts($productName)
+    {
+        // Buscar productos similares usando búsqueda difusa
+        return collect($this->productsCache)
+            ->filter(function($product) use ($productName) {
+                return similar_text(strtolower($product['descrip']), strtolower($productName)) > 40;
+            })
+            ->take(3)
+            ->values()
+            ->toArray();
+    }
+
     /**
      * Obtener todos los productos en memoria (para debugging)
      */

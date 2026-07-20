@@ -513,19 +513,7 @@ class SaprodController extends Controller
 
         $sucursales  = Sasucursal::where("fk_comercial", $comercial)->get();
 
-        /*$consulta = " SELECT  b.inspadre,  c.fk_sucursal, sum(c.existen) as cantidad
-                      FROM   saprod a, sainsta b, newsaexis c, sasucursal d
-                      WHERE   a.comercial    = $comercial
-                          AND a.codprod      = c.codprod
-                          AND a.codinst      = b.codinst
-                          AND c.fk_sucursal  = d.id
-                          AND b.inspadre     <>104
-                          AND c.fk_sucursal IN ($sucursalIds)
-                          AND c.existen      <> 0
 
-                     group by c.fk_sucursal, b.inspadre
-
-                       ";*/
         $query = DB::table('saprod as productos')
             ->join('sainsta as i', 'productos.codinst', '=', 'i.codinst')
             ->join('newsaexis as e', 'productos.codprod', '=', 'e.codprod')
@@ -584,6 +572,88 @@ class SaprodController extends Controller
         return view('existenciasMotos', compact( 'arraysucursal', 'arrayinstanci', 'arraycantidad') );
     }
 
+    public function existenciasMotosConsignacion()
+    {
+        $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
+        $arraysucursales = implode(",",$arraysucursales);
+
+        $comercial  = session('comercialid') ;
+        if(!$comercial) {
+            session(['comercialid' => 1]);
+            $comercial = 1;
+        }
+
+        $instancias = Sainsta::selectRaw("  Descrip as label, descrip, id, nivel, codinst , codalte")
+            ->whereRaw("nivel=2 AND   tipoins=0 and codalte like '01.%'")
+            ->orderBy('descrip','asc')->get();
+
+        $sucursales  = Sasucursal::where("fk_comercial", $comercial)->whereRaw("id in ($arraysucursales)")->get();
+        $sucursalarr = $sucursales->pluck('id');
+        $sucursalIds = implode(",", $sucursalarr->toArray());
+
+        $sucursales  = Sasucursal::where("fk_comercial", $comercial)->get();
+
+
+        $query = DB::table('saprod as productos')
+            ->join('sainsta as i', 'productos.codinst', '=', 'i.codinst')
+            ->join('newsaexis as e', 'productos.codprod', '=', 'e.codprod')
+            ->join('sadepo as f', 'f.codubic', '=', 'e.codubic')
+            ->join('sasucursal as s', 'e.fk_sucursal', '=', 's.id')
+            ->select(
+                'i.inspadre',
+                'e.fk_sucursal',
+                DB::raw('SUM(e.existen) as total_cantidad')
+            )
+            ->where('productos.comercial', $comercial)
+            ->where('i.inspadre', '<>', 104)
+            ->whereRaw("e.fk_sucursal in ($sucursalIds)")
+            ->where('e.existen', '>', 0)
+            ->where('f.consignacion', '=', 1)
+            ->groupBy('e.fk_sucursal', 'i.inspadre')
+            ->having('total_cantidad', '>', 0)
+            ->orderBy('i.inspadre')
+            ->orderBy('e.fk_sucursal')
+            ->get();
+
+        //$query = DB::select($consulta);
+
+        $vectorsucursales = [];
+        foreach ($sucursales as $sucursal){
+            if(!isset($vectorsucursales[$sucursal->id])){
+                $vectorsucursales[$sucursal->id] = $sucursal->descrip;
+            }
+        }
+
+        $vectorinstancias = [];
+        foreach ($instancias as $instancia){
+            if(!isset($vectorinstancias[$instancia->codinst])){
+                $vectorinstancias[$instancia->codinst] = $instancia->descrip;
+            }
+        }
+
+        $arraysucursal = array();
+        $arrayinstanci = array();
+        $arraycantidad = array();
+
+
+        foreach ($query as $item) {
+            if(!isset($arraysucursal[$item->fk_sucursal]))
+                $arraysucursal[$item->fk_sucursal] = $vectorsucursales[$item->fk_sucursal];
+
+            if(!isset($arrayinstanci[$item->inspadre]) and isset($vectorinstancias[$item->inspadre]))
+                $arrayinstanci[$item->inspadre] = $vectorinstancias[$item->inspadre];
+
+            if(!isset($arraycantidad[$item->inspadre][$item->fk_sucursal]))
+                $arraycantidad[$item->inspadre][$item->fk_sucursal] = 0;
+
+            $arraycantidad[$item->inspadre][$item->fk_sucursal] += $item->total_cantidad;
+        }
+
+        asort($arrayinstanci);
+
+        return view('existenciasMotosConsignacion', compact( 'arraysucursal', 'arrayinstanci', 'arraycantidad') );
+    }
+
     public function existenciasMotosModelos(Request $request)
     {
         $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
@@ -619,6 +689,94 @@ class SaprodController extends Controller
             )
             ->where('productos.comercial', $comercial)
             ->whereRaw("e.fk_sucursal in ($sucursalIds)")
+            ->where('e.existen', '>', 0)
+            ->groupBy('e.fk_sucursal','i.codinst')
+            ->having('total_cantidad', '>', 0)
+            ->orderBy('e.fk_sucursal')
+            ->get();
+
+        //$query = DB::select($consulta);
+
+        $vectorsucursales = [];
+        foreach ($sucursales as $sucursal){
+            if(!isset($vectorsucursales[$sucursal->id])){
+                $vectorsucursales[$sucursal->id] = $sucursal->descrip;
+            }
+        }
+
+        $vectorinstancias = [];
+        foreach ($instancias as $instancia){
+            if(!isset($vectorinstancias[$instancia->codinst])){
+                $vectorinstancias[$instancia->codinst] = $instancia->descrip;
+            }
+        }
+
+        $arraysucursal = array();
+        $arrayinstanci = array();
+        $arraycantidad = array();
+
+
+        foreach ($query as $item) {
+            if(!isset($arraysucursal[$item->fk_sucursal]))
+                $arraysucursal[$item->fk_sucursal] = $vectorsucursales[$item->fk_sucursal];
+
+            if(!isset($arrayinstanci[$item->codinst]) and isset($vectorinstancias[$item->codinst]))
+                $arrayinstanci[$item->codinst] = $vectorinstancias[$item->codinst];
+
+            if(!isset($arraycantidad[$item->codinst][$item->fk_sucursal]))
+                $arraycantidad[$item->codinst][$item->fk_sucursal] = 0;
+
+            $arraycantidad[$item->codinst][$item->fk_sucursal] += $item->total_cantidad;
+        }
+
+        asort($arrayinstanci);
+        $ajax = ($request->ajax())? 1 : 0;
+        $html = view('existenciasMotosModelos', compact('ajax', 'inspadre', 'arraysucursal',  'arrayinstanci', 'arraycantidad') )->render();
+
+        if ($ajax){
+            return $html;
+        }else{
+            return  view('existenciasMotosModelosPrint',compact('html'));
+        }
+    }
+
+    public function existenciasMotosModelosConsignacion(Request $request)
+    {
+        $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
+        $arraysucursales = implode(",",$arraysucursales);
+
+        $comercial  = session('comercialid') ;
+        if(!$comercial) {
+            session(['comercialid' => 1]);
+            $comercial = 1;
+        }
+
+        $inspadre   = $request->inspadre;
+
+        $instancias = Sainsta::selectRaw("  Descrip as label, descrip, id, nivel, codinst , codalte")
+            ->whereRaw("nivel=3 AND  inspadre = $inspadre and  tipoins = 0 and codalte like '01.%'")
+            ->orderBy('descrip','asc')->get();
+
+
+        $sucursales  = Sasucursal::where("fk_comercial", $comercial)->whereRaw("id in ($arraysucursales)")->get();
+        $sucursalarr = $sucursales->pluck('id');
+        $sucursalIds = implode(",", $sucursalarr->toArray());
+
+        $sucursales  = Sasucursal::where("fk_comercial", $comercial)->whereRaw("id in ($arraysucursales)")->get();
+
+        $query = DB::table('saprod as productos')
+            ->join('sainsta as i', 'productos.codinst', '=', 'i.codinst')
+            ->join('newsaexis as e', 'productos.codprod', '=', 'e.codprod')
+            ->join('sadepo as f', 'f.codubic', '=', 'e.codubic')
+            ->join('sasucursal as s', 'e.fk_sucursal', '=', 's.id')
+            ->select(
+                'i.codinst',
+                'e.fk_sucursal',
+                DB::raw('SUM(e.existen) as total_cantidad')
+            )
+            ->where('productos.comercial', $comercial)
+            ->whereRaw("e.fk_sucursal in ($sucursalIds)")
+            ->where('f.consignacion', '=', 1)
             ->where('e.existen', '>', 0)
             ->groupBy('e.fk_sucursal','i.codinst')
             ->having('total_cantidad', '>', 0)

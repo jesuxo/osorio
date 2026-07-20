@@ -330,10 +330,14 @@
                     </h5>
                 </div>
 
-                <div class="card-footer bg-transparent border-0">
+                <div class="card-footer bg-transparent border-0" style="display: flex; gap: 14px;">
                     <a href="/existencia/motos" class="btn btn-outline-warning w-100">
-                        Cantidad x marcas x sucursal
+                        Motos x Sucursal
                     </a>
+                    <a href="/existencia/motos/consignacion" class="btn btn-outline-warning w-100">
+                        Consignaci&oacute;n
+                    </a>
+
                 </div>
             </div>
         </div>

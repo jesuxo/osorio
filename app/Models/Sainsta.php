@@ -44,4 +44,30 @@ class Sainsta extends Model
     public function comercial  (){
         return $this->belongsTo(Sacomercial::class, 'comercial', 'id');
     }
+
+    /**
+     * Scope para categorías principales (nivel 1)
+     */
+    public function scopePrincipales($query)
+    {
+        return $query->where('nivel', 1)
+            ->where('insPadre', 0)
+            ->where('tipoIns', 0);
+    }
+
+    /**
+     * Scope para categorías hijas de una categoría padre
+     */
+    public function scopeHijasDe($query, $codinstPadre)
+    {
+        return $query->where('insPadre', $codinstPadre);
+    }
+
+    /**
+     * Scope para categorías de un comercial específico
+     */
+    public function scopeDelComercial($query, $comercialId)
+    {
+        return $query->where('comercial', $comercialId);
+    }
 }

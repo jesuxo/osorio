@@ -15,6 +15,7 @@ use App\Http\Controllers\SerialesExtractorController;
 use App\Http\Controllers\SaprodController;
 use App\Http\Controllers\ChatConversationController;
 use App\Http\Controllers\SavendController;
+//use App\Http\Controllers\ShopController;
 use App\Http\Controllers\IAController;
 use App\Http\Controllers\CwtransferenciasController;
 use App\Http\Controllers\ChoferController;
@@ -52,7 +53,30 @@ use App\Http\Controllers\Seriales\VerificacionSerialController;
 | contains the "web" middleware group. Now create something great!
 |
 */
+Route::get('/', [HomeController::class, 'index'])->name('index');
+Route::get('/index', [HomeController::class, 'index'])->name('index');
 
+/*
+
+Route::prefix('/')->name('shop.')->group(function () {
+
+    // Página principal
+    Route::get('/', [ShopController::class, 'index'])->name('index');
+
+    // Detalle de producto
+    Route::get('/producto/{codprod}', [ShopController::class, 'show'])->name('product');
+
+    // Categoría
+    Route::get('/categoria/{categoriaId}', [ShopController::class, 'category'])->name('category');
+
+    // Búsqueda (página)
+    Route::get('/buscar', [ShopController::class, 'index'])->name('search');
+
+    // Búsqueda AJAX para autocompletado
+    Route::get('/buscar-ajax', [ShopController::class, 'searchAjax'])->name('search.ajax');
+
+});
+*/
 use App\Http\Controllers\PublicoSeguimientoController;
 
 // Rutas públicas para el chofer (sin autenticación)
@@ -89,8 +113,6 @@ Route::group(['prefix' => 'error'], function(){
 
 
 
-
-
 use App\Http\Controllers\ComercialDashboardController;
 
 // Rutas para el dashboard del comercial
@@ -114,8 +136,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/comerciales/disponibles', [ComercialDashboardController::class, 'getComercialesDisponibles'])
         ->name('comerciales.disponibles');
 });
-
-
 
 Route::middleware(['auth'])->group(function () {
 
@@ -428,9 +448,15 @@ Route::middleware(['auth'])->group(function () {
         Route::post('saprod/home/busqueda', 'busquedaHomeProd');
 
         Route::match(['get','post'],'newexistencias', 'newexistencias');
+
         Route::get( '/existencia/motos', 'existenciasMotos');
         Route::post( '/existencia/motos/modelos', 'existenciasMotosModelos');
         Route::get( '/existencia/motos/modelos/{inspadre}', 'existenciasMotosModelos');
+
+        Route::get( '/existencia/motos/consignacion', 'existenciasMotosConsignacion');
+        Route::post( '/existencia/motos/modelos/consignacion', 'existenciasMotosModelosConsignacion');
+        Route::get( '/existencia/motos/modelos/consignacion/{inspadre}', 'existenciasMotosModelosConsignacion');
+
         Route::post('reporte/newexisten/php', 'newexistenciasphp');
         Route::match(['get','post'],'/operaciones/{codprod?}', 'index');
         Route::match(['get','post'],'existencias', 'existencias');
@@ -590,16 +616,15 @@ Route::middleware(['auth'])->group(function () {
     Route::match(['get','post'],'/reporte/venta', [HomeController::class, 'reporteventa'])->name('reporteventa');
     Route::post('/reporte/venta/sucu', [HomeController::class, 'reporteventasucu'])->name('reporteventasucu');
 
-
-
-    Route::match(['get','post'],'/', [HomeController::class, 'index'])->name('index');
-    Route::match(['get','post'],'/index', [HomeController::class, 'index'])->name('index');
-    Route::get('logout', [TonerController::class, 'logout']);
-
-    Route::get('{any}', [TonerController::class, 'index']);
-    Route::get('components/{any}', [TonerController::class, 'components']);
 });
-
+/*
+// Para acceder al panel admin desde la tienda
+Route::middleware(['auth'])->group(function () {
+    Route::get('/admin', function () {
+        return redirect('/index'); // o a donde quieras
+    });
+});
+*/
 Route::post('/chat/initialize', [ChatbotController::class, 'initialize'])->name('chat.initialize');
 Route::post('/chat/message', [ChatbotController::class, 'message'])->name('chatbot.message');
 Route::post('/chat/end', [ChatbotController::class, 'endConversation'])->name('chat.end');

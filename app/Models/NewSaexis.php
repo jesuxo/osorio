@@ -20,4 +20,9 @@ class NewSaexis extends Model
         $comercial = session('comercialid') ;
         return $this->belongsTo(Sadepo::class, 'codubic', 'codubic')->where('comercial',$comercial);
     }
+
+    public function producto()
+    {
+        return $this->belongsTo(Saprod::class, 'codprod', 'codprod');
+    }
 }

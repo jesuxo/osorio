@@ -575,83 +575,128 @@ class SaprodController extends Controller
     public function existenciasMotosConsignacion()
     {
         $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
-        $arraysucursales = implode(",",$arraysucursales);
+        $arraysucursales = implode(",", $arraysucursales);
 
-        $comercial  = session('comercialid') ;
-        if(!$comercial) {
+        $comercial = session('comercialid');
+        if (!$comercial) {
             session(['comercialid' => 1]);
             $comercial = 1;
         }
 
-        $instancias = Sainsta::selectRaw("  Descrip as label, descrip, id, nivel, codinst , codalte")
-            ->whereRaw("nivel=2 AND   tipoins=0 and codalte like '01.%'")
-            ->orderBy('descrip','asc')->get();
+        // Obtener todos los depósitos en consignación
+        $depositos = DB::table('sadepo')
+            ->where('consignacion', 1)
+            ->where('comercial', $comercial)
+            ->orderBy('descrip')
+            ->get();
 
-        $sucursales  = Sasucursal::where("fk_comercial", $comercial)->whereRaw("id in ($arraysucursales)")->get();
-        $sucursalarr = $sucursales->pluck('id');
-        $sucursalIds = implode(",", $sucursalarr->toArray());
+        // Obtener sucursales del usuario
+        $sucursales = Sasucursal::where("fk_comercial", $comercial)
+            ->whereRaw("id in ($arraysucursales)")
+            ->orderBy('descrip')
+            ->get();
 
-        $sucursales  = Sasucursal::where("fk_comercial", $comercial)->get();
+        $sucursalIds = implode(",", $sucursales->pluck('id')->toArray());
 
-
+        // Consulta para obtener existencias en consignación por depósito
         $query = DB::table('saprod as productos')
-            ->join('sainsta as i', 'productos.codinst', '=', 'i.codinst')
             ->join('newsaexis as e', 'productos.codprod', '=', 'e.codprod')
             ->join('sadepo as f', 'f.codubic', '=', 'e.codubic')
             ->join('sasucursal as s', 'e.fk_sucursal', '=', 's.id')
+            ->join('sainsta as i', 'productos.codinst', '=', 'i.codinst')
             ->select(
-                'i.inspadre',
+                'f.codubic',
+                'f.descrip as deposito_nombre',
                 'e.fk_sucursal',
-                DB::raw('SUM(e.existen) as total_cantidad')
+                's.descrip as sucursal_nombre',
+                'i.inspadre as marca_id',
+                'i.descrip as marca_nombre',
+                DB::raw('SUM(e.existen) as total_cantidad'),
+                DB::raw('SUM(e.existen * productos.preciod) as total_costo')
             )
             ->where('productos.comercial', $comercial)
-            ->where('i.inspadre', '<>', 104)
             ->whereRaw("e.fk_sucursal in ($sucursalIds)")
-            ->where('e.existen', '>', 0)
             ->where('f.consignacion', '=', 1)
-            ->groupBy('e.fk_sucursal', 'i.inspadre')
+            ->where('e.existen', '>', 0)
+            ->groupBy('f.codubic', 'f.descrip', 'e.fk_sucursal', 's.descrip', 'i.inspadre', 'i.descrip')
             ->having('total_cantidad', '>', 0)
-            ->orderBy('i.inspadre')
-            ->orderBy('e.fk_sucursal')
+            ->orderBy('f.descrip')
+            ->orderBy('s.descrip')
+            ->orderBy('i.descrip')
             ->get();
 
-        //$query = DB::select($consulta);
-
-        $vectorsucursales = [];
-        foreach ($sucursales as $sucursal){
-            if(!isset($vectorsucursales[$sucursal->id])){
-                $vectorsucursales[$sucursal->id] = $sucursal->descrip;
-            }
-        }
-
-        $vectorinstancias = [];
-        foreach ($instancias as $instancia){
-            if(!isset($vectorinstancias[$instancia->codinst])){
-                $vectorinstancias[$instancia->codinst] = $instancia->descrip;
-            }
-        }
-
-        $arraysucursal = array();
-        $arrayinstanci = array();
-        $arraycantidad = array();
-
+        // Organizar datos por depósito
+        $datosPorDeposito = [];
+        $totalesDeposito = [];
+        $totalesSucursal = [];
+        $totalesMarca = [];
+        $totalGeneral = 0;
 
         foreach ($query as $item) {
-            if(!isset($arraysucursal[$item->fk_sucursal]))
-                $arraysucursal[$item->fk_sucursal] = $vectorsucursales[$item->fk_sucursal];
+            $depositoKey = $item->codubic;
+            $sucursalKey = $item->fk_sucursal;
+            $marcaKey = $item->marca_id;
 
-            if(!isset($arrayinstanci[$item->inspadre]) and isset($vectorinstancias[$item->inspadre]))
-                $arrayinstanci[$item->inspadre] = $vectorinstancias[$item->inspadre];
+            // Inicializar estructuras
+            if (!isset($datosPorDeposito[$depositoKey])) {
+                $datosPorDeposito[$depositoKey] = [
+                    'nombre' => $item->deposito_nombre,
+                    'sucursales' => []
+                ];
+            }
 
-            if(!isset($arraycantidad[$item->inspadre][$item->fk_sucursal]))
-                $arraycantidad[$item->inspadre][$item->fk_sucursal] = 0;
+            if (!isset($datosPorDeposito[$depositoKey]['sucursales'][$sucursalKey])) {
+                $datosPorDeposito[$depositoKey]['sucursales'][$sucursalKey] = [
+                    'nombre' => $item->sucursal_nombre,
+                    'marcas' => []
+                ];
+            }
 
-            $arraycantidad[$item->inspadre][$item->fk_sucursal] += $item->total_cantidad;
+            if (!isset($datosPorDeposito[$depositoKey]['sucursales'][$sucursalKey]['marcas'][$marcaKey])) {
+                $datosPorDeposito[$depositoKey]['sucursales'][$sucursalKey]['marcas'][$marcaKey] = [
+                    'nombre' => $item->marca_nombre,
+                    'cantidad' => 0,
+                    'costo' => 0
+                ];
+            }
+
+            // Acumular cantidades
+            $datosPorDeposito[$depositoKey]['sucursales'][$sucursalKey]['marcas'][$marcaKey]['cantidad'] += $item->total_cantidad;
+            $datosPorDeposito[$depositoKey]['sucursales'][$sucursalKey]['marcas'][$marcaKey]['costo'] += $item->total_costo;
+
+            // Totales por depósito
+            if (!isset($totalesDeposito[$depositoKey])) {
+                $totalesDeposito[$depositoKey] = 0;
+            }
+            $totalesDeposito[$depositoKey] += $item->total_cantidad;
+
+            // Totales por sucursal
+            if (!isset($totalesSucursal[$sucursalKey])) {
+                $totalesSucursal[$sucursalKey] = 0;
+            }
+            $totalesSucursal[$sucursalKey] += $item->total_cantidad;
+
+            // Totales por marca
+            if (!isset($totalesMarca[$marcaKey])) {
+                $totalesMarca[$marcaKey] = 0;
+            }
+            $totalesMarca[$marcaKey] += $item->total_cantidad;
+
+            $totalGeneral += $item->total_cantidad;
         }
 
-        asort($arrayinstanci);
+        // Ordenar datos
+        ksort($datosPorDeposito);
 
-        return view('existenciasMotosConsignacion', compact( 'arraysucursal', 'arrayinstanci', 'arraycantidad') );
+        return view('existenciasMotosConsignacion', compact(
+            'datosPorDeposito',
+            'depositos',
+            'sucursales',
+            'totalesDeposito',
+            'totalesSucursal',
+            'totalesMarca',
+            'totalGeneral'
+        ));
     }
 
     public function existenciasMotosModelos(Request $request)

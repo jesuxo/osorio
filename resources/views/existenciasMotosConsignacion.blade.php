@@ -109,6 +109,9 @@
                             <p class="text-white-50 mb-0 small">Distribución de inventario en consignación por depósito, sucursal y marca</p>
                         </div>
                         <div>
+                            <button type="button" class="btn btn-sm btn-light me-2"   onclick="   capture('#tablaConsignacion')">
+                                <i class="bi bi-camera"></i> Capturar
+                            </button>
                             <button onclick="exportToExcel()" class="btn btn-sm btn-light me-2">
                                 <i class="bi bi-download me-1"></i> Exportar Excel
                             </button>

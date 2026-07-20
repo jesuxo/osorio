@@ -254,9 +254,7 @@
                                                         $totalDeposito += $totalSucursal;
                                                         $totalesSucursales[$sucursal->id] += $totalSucursal;
                                                     @endphp
-                                                    <span class="badge bg-info badge-cantidad">
 
-                                                    </span>
                                                 @else
                                                     <span class="text-muted">-</span>
                                                 @endif
@@ -283,9 +281,7 @@
                                             @foreach($sucursales as $sucursal)
                                                 <td class="text-center">
                                                     @if($sucursal->id == $sucursalKey)
-                                                        <span class="badge bg-secondary badge-cantidad">
 
-                                                        </span>
                                                     @else
                                                         <span class="text-muted">-</span>
                                                     @endif

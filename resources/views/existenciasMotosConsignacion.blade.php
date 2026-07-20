@@ -288,9 +288,7 @@
                                                 </td>
                                             @endforeach
                                             <td class="text-center">
-                                                <span class="badge bg-secondary badge-cantidad">
-                                                    {{ number_format(array_sum(array_column($sucursalData['marcas'], 'cantidad')), 0, ',', '.') }}
-                                                </span>
+
                                             </td>
 
                                         </tr>
@@ -334,9 +332,7 @@
                                     </td>
                                     @foreach($sucursales as $sucursal)
                                         <td class="text-center total-sucursal">
-                                            <span class="badge bg-success badge-cantidad">
-                                                {{ number_format($totalesSucursales[$sucursal->id] ?? 0, 0, ',', '.') }}
-                                            </span>
+
                                         </td>
                                     @endforeach
                                     <td class="text-center total-general">

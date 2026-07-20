@@ -119,58 +119,6 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Filtros -->
-                    <div class="filter-section">
-                        <div class="row align-items-end">
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">
-                                    <i class="bi bi-search me-1"></i>Buscar Depósito
-                                </label>
-                                <input type="text" class="form-control" id="buscarDeposito"
-                                       placeholder="Nombre del depósito...">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">
-                                    <i class="bi bi-filter me-1"></i>Filtrar por Sucursal
-                                </label>
-                                <select class="form-select" id="filtrarSucursal">
-                                    <option value="">Todas las sucursales</option>
-                                    @foreach($sucursales as $sucursal)
-                                        <option value="{{ $sucursal->id }}">{{ $sucursal->descrip }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold">
-                                    <i class="bi bi-tags me-1"></i>Filtrar por Marca
-                                </label>
-                                <select class="form-select" id="filtrarMarca">
-                                    <option value="">Todas las marcas</option>
-                                    @foreach($totalesMarca as $marcaId => $total)
-                                        @php
-                                            $marcaNombre = '';
-                                            foreach($datosPorDeposito as $deposito) {
-                                                foreach($deposito['sucursales'] as $sucursal) {
-                                                    if(isset($sucursal['marcas'][$marcaId])) {
-                                                        $marcaNombre = $sucursal['marcas'][$marcaId]['nombre'];
-                                                        break 2;
-                                                    }
-                                                }
-                                            }
-                                        @endphp
-                                        @if($marcaNombre)
-                                            <option value="{{ $marcaId }}">{{ $marcaNombre }}</option>
-                                        @endif
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <button class="btn btn-outline-secondary w-100" onclick="limpiarFiltros()">
-                                    <i class="bi bi-eraser me-1"></i>Limpiar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Resumen rápido -->
                     <div class="row mb-3">

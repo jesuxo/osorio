@@ -261,9 +261,7 @@
                                             </td>
                                         @endforeach
                                         <td class="text-center total-row">
-                                            <span class="badge bg-success badge-cantidad">
-                                                {{ number_format($totalDeposito, 0, ',', '.') }}
-                                            </span>
+
                                         </td>
 
                                     </tr>

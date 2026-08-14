@@ -17,6 +17,8 @@ class PagoProveedorDetalle extends Model
         'cantidad',
         'cantidad_recibida',
         'cantidad_facturada',
+        'numero_factura',
+        'fecha_factura',
         'precio_unitario',
         'subtotal'
     ];
@@ -25,6 +27,7 @@ class PagoProveedorDetalle extends Model
         'cantidad'           => 'integer',
         'cantidad_recibida'  => 'integer',
         'cantidad_facturada' => 'integer',
+        'fecha_factura'      => 'date',
         'precio_unitario'    => 'decimal:2',
         'subtotal'           => 'decimal:2'
     ];

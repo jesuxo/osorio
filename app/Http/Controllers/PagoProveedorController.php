@@ -205,6 +205,23 @@ class PagoProveedorController extends Controller
     {
         $pago = PagoProveedor::findOrFail($id);
 
+        $request->validate([
+            'productos_actualizar' => 'nullable|array',
+            'productos_actualizar.*.id' => 'exists:pagos_proveedores_detalles,id',
+            'productos_actualizar.*.cantidad' => 'integer|min:1',
+            'productos_actualizar.*.cantidad_facturada' => 'integer|min:0',
+            'productos_actualizar.*.numero_factura' => 'nullable|string|max:50',
+            'productos_actualizar.*.fecha_factura' => 'nullable|date',
+            'productos_actualizar.*.precio_unitario' => 'numeric|min:0',
+            'productos_nuevos' => 'nullable|array',
+            'productos_nuevos.*.producto_id' => 'exists:saprod,id',
+            'productos_nuevos.*.cantidad' => 'integer|min:1',
+            'productos_nuevos.*.cantidad_facturada' => 'integer|min:0',
+            'productos_nuevos.*.numero_factura' => 'nullable|string|max:50',
+            'productos_nuevos.*.fecha_factura' => 'nullable|date',
+            'productos_nuevos.*.precio_unitario' => 'numeric|min:0',
+        ]);
+
         DB::beginTransaction();
 
         try {
@@ -213,7 +230,9 @@ class PagoProveedorController extends Controller
                 $detalle = PagoProveedorDetalle::find($producto['id']);
                 if ($detalle && $detalle->pago_id == $pago->id) {
                     $detalle->cantidad = $producto['cantidad'];
-                    $detalle->cantidad_facturada = $producto['cantidad_facturada'] ?? 0; // Nuevo campo
+                    $detalle->cantidad_facturada = $producto['cantidad_facturada'] ?? 0;
+                    $detalle->numero_factura = $producto['numero_factura'] ?? null;
+                    $detalle->fecha_factura = isset($producto['fecha_factura']) ? $producto['fecha_factura'] : null;
                     $detalle->precio_unitario = $producto['precio_unitario'];
                     $detalle->subtotal = $producto['cantidad'] * $producto['precio_unitario'];
                     $detalle->save();
@@ -222,18 +241,22 @@ class PagoProveedorController extends Controller
 
             // Crear nuevos productos
             foreach ($request->productos_nuevos as $producto) {
-                $prod = Saprod::where('codprod',$producto['producto_codprod'])->where('comercial',1)->first();
+                $prod = Saprod::where('codprod', $producto['producto_codprod'])
+                    ->where('comercial', 1)
+                    ->first();
 
                 PagoProveedorDetalle::create([
-                    'pago_id'           => $pago->id,
-                    'producto_id'       => $producto['producto_id'],
-                    'producto_codprod'  => $prod ? $prod->codprod : $producto['producto_codprod'],
-                    'producto_descrip'  => $producto['producto_descrip'],
-                    'cantidad'          => $producto['cantidad'],
-                    'cantidad_recibida' => 0,
-                    'cantidad_facturada' => $producto['cantidad_facturada'] ?? 0, // Nuevo campo
-                    'precio_unitario'   => $producto['precio_unitario'],
-                    'subtotal'          => $producto['cantidad'] * $producto['precio_unitario']
+                    'pago_id'            => $pago->id,
+                    'producto_id'        => $producto['producto_id'],
+                    'producto_codprod'   => $prod ? $prod->codprod : $producto['producto_codprod'],
+                    'producto_descrip'   => $producto['producto_descrip'],
+                    'cantidad'           => $producto['cantidad'],
+                    'cantidad_recibida'  => 0,
+                    'cantidad_facturada' => $producto['cantidad_facturada'] ?? 0,
+                    'numero_factura'     => $producto['numero_factura'] ?? null,
+                    'fecha_factura'      => isset($producto['fecha_factura']) ? $producto['fecha_factura'] : null,
+                    'precio_unitario'    => $producto['precio_unitario'],
+                    'subtotal'           => $producto['cantidad'] * $producto['precio_unitario']
                 ]);
             }
 
@@ -288,6 +311,8 @@ class PagoProveedorController extends Controller
                     'cantidad'           => $detalle->cantidad,
                     'cantidad_facturada' => $detalle->cantidad_facturada ?? 0,
                     'cantidad_recibida'  => $detalle->cantidad_recibida,
+                    'numero_factura'     => $detalle->numero_factura ?? '',
+                    'fecha_factura'      => $detalle->fecha_factura ? $detalle->fecha_factura->format('Y-m-d') : '',
                     'precio_unitario'    => $detalle->precio_unitario,
                     'subtotal'           => $detalle->subtotal
                 ];

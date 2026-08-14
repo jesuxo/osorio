@@ -695,6 +695,8 @@
         }
 
         function abrirModalEditarProductos(pagoId) {
+            console.log('Productos temporales:', productosTemporales); // Debug
+
             const modalContent = `
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -722,9 +724,11 @@
                     ${productosTemporales.length === 0 ?
                 '<tr class="text-muted"><td colspan="9" class="text-center">No hay productos agregados</td></tr>' :
                 productosTemporales.map((prod, index) => {
-                    // USAR DIRECTAMENTE prod.cantidad_facturada
-                    const totalFacturado = prod.cantidad_facturada || 0;
-                    const pendienteFacturar = prod.cantidad - totalFacturado;
+                    // USAR DIRECTAMENTE prod.cantidad_recibida
+                    const recibidas = prod.cantidad_recibida || 0;
+                    const facturadas = prod.cantidad_facturada || 0;
+                    const pendientes = prod.cantidad - recibidas;
+                    const pendienteFacturar = prod.cantidad - facturadas;
 
                     return `
                                 <tr data-index="${index}">
@@ -742,13 +746,13 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="badge bg-secondary">${prod.cantidad_recibida || 0}</span>
+                                        <span class="badge bg-success">${recibidas}</span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-primary">${totalFacturado}</span>
+                                        <span class="badge bg-primary">${facturadas}</span>
                                     </td>
                                     <td>
-                                        <span class="badge ${pendienteFacturar > 0 ? 'bg-warning' : 'bg-success'}">${pendienteFacturar}</span>
+                                        <span class="badge ${pendientes > 0 ? 'bg-warning' : 'bg-secondary'}">${pendientes}</span>
                                     </td>
                                     <td>
                                         <div class="input-group input-group-sm">
@@ -789,9 +793,16 @@
             </table>
         </div>
         <hr class="my-3">
-        <div class="d-flex justify-content-end gap-2">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="button" class="btn btn-primary" id="btnGuardarProductosEdit">Guardar Cambios</button>
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="recargarProductos(true)">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Recargar
+                </button>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnGuardarProductosEdit">Guardar Cambios</button>
+            </div>
         </div>
     </div>
 `;
@@ -1190,9 +1201,13 @@
                     if (data.success) {
                         // Actualizar el array de productos temporales con los datos nuevos
                         productosTemporales = data.productos;
+
+                        // Mostrar en consola para debug
+                        console.log('Productos recargados:', productosTemporales);
+
                         // Recargar la vista de edición
                         abrirModalEditarProductos(pagoId);
-                        mostrarToast('Productos actualizados', 'Éxito', 'success');
+                        mostrarToast('Datos actualizados', 'Éxito', 'success');
                     } else {
                         mostrarToast('Error al recargar productos', 'Error', 'danger');
                     }
@@ -1624,6 +1639,37 @@
             producto.subtotal = producto.cantidad * producto.precio_unitario;
 
             actualizarTablaProductos();
+        }
+
+        function recargarProductos(recargarModal = true) {
+            const pagoId = pagoActualId;
+            if (!pagoId) return;
+
+            mostrarLoading(true);
+
+            fetch(`/pagos-proveedores/${pagoId}/productos`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Actualizar el array de productos temporales
+                        productosTemporales = data.productos;
+                        console.log('✅ Productos recargados:', productosTemporales);
+
+                        if (recargarModal) {
+                            // Recargar la vista de edición
+                            abrirModalEditarProductos(pagoId);
+                        }
+
+                        mostrarToast('Datos actualizados correctamente', 'Éxito', 'success');
+                    } else {
+                        mostrarToast('Error al recargar productos', 'Error', 'danger');
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error al recargar:', error);
+                    mostrarToast('Error de conexión', 'Error', 'danger');
+                })
+                .finally(() => mostrarLoading(false));
         }
 
         function actualizarTablaProductos() {
@@ -2077,7 +2123,6 @@
             const numeroGuia = $('#numero_guia').val();
             const notas = $('#notas_despacho').val();
 
-            // Obtener productos seleccionados
             const productos = [];
             $('.checkbox-producto:checked').each(function() {
                 const detalleId = $(this).val();
@@ -2121,7 +2166,15 @@
                     if (data.success) {
                         mostrarToast(data.message, 'Éxito', 'success');
                         $('#modalPago').modal('hide');
-                        setTimeout(() => location.reload(), 1500);
+
+                        // RECARGAR PRODUCTOS DESPUÉS DE LA RECEPCIÓN
+                        setTimeout(() => {
+                            recargarProductos(false); // Recargar sin abrir modal
+                            // Abrir nuevamente el modal de edición
+                            setTimeout(() => {
+                                agregarProductos(pagoActualId);
+                            }, 500);
+                        }, 500);
                     } else {
                         mostrarToast(data.error || 'Error al registrar recepción', 'Error', 'danger');
                     }

@@ -317,16 +317,12 @@ class PagoProveedorController extends Controller
             'productos_actualizar' => 'nullable|array',
             'productos_actualizar.*.id' => 'exists:pagos_proveedores_detalles,id',
             'productos_actualizar.*.cantidad' => 'integer|min:1',
-            'productos_actualizar.*.cantidad_facturada' => 'integer|min:0',
-            'productos_actualizar.*.numero_factura' => 'nullable|string|max:50',
-            'productos_actualizar.*.fecha_factura' => 'nullable|date',
+            'productos_actualizar.*.cantidad_facturada' => 'integer|min:0', // ← Se mantiene
             'productos_actualizar.*.precio_unitario' => 'numeric|min:0',
             'productos_nuevos' => 'nullable|array',
             'productos_nuevos.*.producto_id' => 'exists:saprod,id',
             'productos_nuevos.*.cantidad' => 'integer|min:1',
-            'productos_nuevos.*.cantidad_facturada' => 'integer|min:0',
-            'productos_nuevos.*.numero_factura' => 'nullable|string|max:50',
-            'productos_nuevos.*.fecha_factura' => 'nullable|date',
+            'productos_nuevos.*.cantidad_facturada' => 'integer|min:0', // ← Se mantiene
             'productos_nuevos.*.precio_unitario' => 'numeric|min:0',
         ]);
 
@@ -338,9 +334,7 @@ class PagoProveedorController extends Controller
                 $detalle = PagoProveedorDetalle::find($producto['id']);
                 if ($detalle && $detalle->pago_id == $pago->id) {
                     $detalle->cantidad = $producto['cantidad'];
-                    $detalle->cantidad_facturada = $producto['cantidad_facturada'] ?? 0;
-                    $detalle->numero_factura = $producto['numero_factura'] ?? null;
-                    $detalle->fecha_factura = isset($producto['fecha_factura']) ? $producto['fecha_factura'] : null;
+                    $detalle->cantidad_facturada = $producto['cantidad_facturada'] ?? 0; // ← Se mantiene
                     $detalle->precio_unitario = $producto['precio_unitario'];
                     $detalle->subtotal = $producto['cantidad'] * $producto['precio_unitario'];
                     $detalle->save();
@@ -360,9 +354,7 @@ class PagoProveedorController extends Controller
                     'producto_descrip'   => $producto['producto_descrip'],
                     'cantidad'           => $producto['cantidad'],
                     'cantidad_recibida'  => 0,
-                    'cantidad_facturada' => $producto['cantidad_facturada'] ?? 0,
-                    'numero_factura'     => $producto['numero_factura'] ?? null,
-                    'fecha_factura'      => isset($producto['fecha_factura']) ? $producto['fecha_factura'] : null,
+                    'cantidad_facturada' => $producto['cantidad_facturada'] ?? 0, // ← Se mantiene
                     'precio_unitario'    => $producto['precio_unitario'],
                     'subtotal'           => $producto['cantidad'] * $producto['precio_unitario']
                 ]);
@@ -418,6 +410,8 @@ class PagoProveedorController extends Controller
                     'producto_descrip'   => $detalle->producto_descrip,
                     'cantidad'           => $detalle->cantidad,
                     'cantidad_recibida'  => $detalle->cantidad_recibida,
+                    'cantidad_facturada' => $detalle->cantidad_facturada, // ← Este es el total acumulado
+                    'pendiente_facturar' => $detalle->pendiente_facturar,
                     'facturas'           => $detalle->facturas->map(function($factura) {
                         return [
                             'id' => $factura->id,
@@ -436,10 +430,9 @@ class PagoProveedorController extends Controller
         ]);
     }
 
-// Nuevo método para agregar factura a un detalle
-    public function agregarFactura(Request $request, $id)
+    public function agregarFactura(Request $request, $detalleId)
     {
-        $detalle = PagoProveedorDetalle::findOrFail($id);
+        $detalle = PagoProveedorDetalle::findOrFail($detalleId);
 
         $request->validate([
             'numero_factura' => 'required|string|max:50',
@@ -451,7 +444,7 @@ class PagoProveedorController extends Controller
         ]);
 
         // Verificar que no exceda la cantidad pendiente
-        $pendienteFacturar = $detalle->pendiente_facturar;
+        $pendienteFacturar = $detalle->cantidad - $detalle->cantidad_facturada;
         if ($request->cantidad_facturada > $pendienteFacturar) {
             return response()->json([
                 'success' => false,
@@ -462,6 +455,7 @@ class PagoProveedorController extends Controller
         DB::beginTransaction();
 
         try {
+            // 1. Guardar la factura en la tabla de historial
             $data = $request->only([
                 'numero_factura',
                 'fecha_factura',
@@ -489,14 +483,19 @@ class PagoProveedorController extends Controller
 
             FacturaProveedor::create($data);
 
-            // Actualizar el estado del pago
+            // 2. ACTUALIZAR cantidad_facturada en el detalle (el incremento que usabas antes)
+            $detalle->cantidad_facturada += $request->cantidad_facturada;
+            $detalle->save();
+
+            // 3. Actualizar el estado del pago
             $detalle->pago->actualizarEstado();
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Factura registrada correctamente'
+                'message' => 'Factura registrada correctamente',
+                'nueva_cantidad_facturada' => $detalle->cantidad_facturada
             ]);
 
         } catch (\Exception $e) {
@@ -508,34 +507,61 @@ class PagoProveedorController extends Controller
         }
     }
 
-// Método para eliminar una factura
-    public function eliminarFactura($id, $facturaId)
+    public function eliminarFactura($facturaId)
     {
         $factura = FacturaProveedor::findOrFail($facturaId);
 
-        // Eliminar archivo físico si existe
-        if ($factura->archivo_path) {
-            $rutaArchivo = public_path($factura->archivo_path);
-            if (file_exists($rutaArchivo)) {
-                unlink($rutaArchivo);
+        // Obtener el detalle antes de eliminar
+        $detalle = PagoProveedorDetalle::find($factura->pago_detalle_id);
+
+        if (!$detalle) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Detalle de pago no encontrado'
+            ], 404);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // 1. Restar la cantidad facturada del detalle
+            $detalle->cantidad_facturada -= $factura->cantidad_facturada;
+            if ($detalle->cantidad_facturada < 0) {
+                $detalle->cantidad_facturada = 0;
             }
+            $detalle->save();
+
+            // 2. Eliminar archivo físico si existe
+            if ($factura->archivo_path) {
+                $rutaArchivo = public_path($factura->archivo_path);
+                if (file_exists($rutaArchivo)) {
+                    unlink($rutaArchivo);
+                }
+            }
+
+            // 3. Eliminar el registro de factura
+            $factura->delete();
+
+            // 4. Actualizar estado del pago
+            $detalle->pago->actualizarEstado();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Factura eliminada correctamente',
+                'nueva_cantidad_facturada' => $detalle->cantidad_facturada
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al eliminar factura: ' . $e->getMessage()
+            ], 500);
         }
-
-        $factura->delete();
-
-        // Actualizar estado del pago
-        $pago = PagoProveedor::find($factura->pago_id);
-        if ($pago) {
-            $pago->actualizarEstado();
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Factura eliminada correctamente'
-        ]);
     }
 
-// Obtener facturas de un pago
     public function getFacturas($id)
     {
         $pago = PagoProveedor::with(['detalles.facturas'])->findOrFail($id);
@@ -545,7 +571,17 @@ class PagoProveedorController extends Controller
             ->orderBy('fecha_factura', 'desc')
             ->get();
 
-        $view = view('pagos-proveedores.partials.lista-facturas', compact('pago', 'facturas'))->render();
+        // Estadísticas rápidas
+        $totalFacturado = $pago->detalles->sum('cantidad_facturada');
+        $montoTotalFacturado = $facturas->sum('monto_facturado');
+
+        $view = view('pagos-proveedores.partials.lista-facturas', compact(
+            'pago',
+            'facturas',
+            'totalFacturado',
+            'montoTotalFacturado'
+        ))->render();
+
         return response()->json(['html' => $view]);
     }
 

@@ -16,6 +16,7 @@ class PagoProveedorDetalle extends Model
         'producto_descrip',
         'cantidad',
         'cantidad_recibida',
+        'cantidad_facturada',  // ← Este campo se mantiene
         'precio_unitario',
         'subtotal'
     ];
@@ -23,6 +24,7 @@ class PagoProveedorDetalle extends Model
     protected $casts = [
         'cantidad'           => 'integer',
         'cantidad_recibida'  => 'integer',
+        'cantidad_facturada' => 'integer',
         'precio_unitario'    => 'decimal:2',
         'subtotal'           => 'decimal:2'
     ];
@@ -38,7 +40,7 @@ class PagoProveedorDetalle extends Model
             ->where('comercial', '=',3);
     }
 
-    // Relación con facturas
+    // Relación con facturas (historial)
     public function facturas()
     {
         return $this->hasMany(FacturaProveedor::class, 'pago_detalle_id');
@@ -49,22 +51,15 @@ class PagoProveedorDetalle extends Model
         return $this->cantidad - $this->cantidad_recibida;
     }
 
-    // Obtener cantidad total facturada (suma de todas las facturas)
-    public function getTotalFacturadoAttribute()
-    {
-        return $this->facturas()->sum('cantidad_facturada');
-    }
-
-    // Obtener cantidad pendiente por facturar
     public function getPendienteFacturarAttribute()
     {
-        return $this->cantidad - $this->total_facturado;
+        return $this->cantidad - $this->cantidad_facturada;
     }
 
     // Verificar si ya está completamente facturado
     public function getEstaCompletamenteFacturadoAttribute()
     {
-        return $this->total_facturado >= $this->cantidad;
+        return $this->cantidad_facturada >= $this->cantidad;
     }
 
     protected static function boot()

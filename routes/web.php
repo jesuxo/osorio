@@ -206,6 +206,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{id}/facturas', [PagoProveedorController::class, 'getFacturas'])->name('facturas.index');
         Route::post('/detalles/{detalleId}/facturas', [PagoProveedorController::class, 'agregarFactura'])->name('facturas.agregar');
         Route::delete('/facturas/{facturaId}', [PagoProveedorController::class, 'eliminarFactura'])->name('facturas.eliminar');
+
+        Route::get('/reporte-facturas', [PagoProveedorController::class, 'reporteFacturas'])->name('reporte-facturas');
+        Route::get('/exportar-facturas', [PagoProveedorController::class, 'exportarReporteFacturas'])->name('exportar-facturas');
     });
 
     Route::get('/motosporfecha', [PagoProveedorController::class, 'motosPorFecha'])->name('motosPorFecha');

@@ -20,6 +20,112 @@ use Maatwebsite\Excel\Excel;
 
 class PagoProveedorController extends Controller
 {
+    public function reporteFacturas(Request $request)
+    {
+        $fecha_desde = $request->fecha_desde ?? date('Y-m-01');
+        $fecha_hasta = $request->fecha_hasta ?? date('Y-m-d');
+        $proveedor = $request->proveedor ?? '';
+        $numero_factura = $request->numero_factura ?? '';
+
+        $query = FacturaProveedor::with(['pago', 'pagoDetalle', 'pago.proveedor'])
+            ->whereBetween('fecha_factura', [$fecha_desde, $fecha_hasta]);
+
+        if ($proveedor) {
+            $query->whereHas('pago', function($q) use ($proveedor) {
+                $q->where('codprov', $proveedor);
+            });
+        }
+
+        if ($numero_factura) {
+            $query->where('numero_factura', 'like', "%{$numero_factura}%");
+        }
+
+        $facturas = $query->orderBy('fecha_factura', 'desc')
+            ->orderBy('numero_factura', 'asc')
+            ->get();
+
+        // Estadísticas
+        $estadisticas = [
+            'total_facturas' => $facturas->count(),
+            'total_motos' => $facturas->sum('cantidad_facturada'),
+            'total_monto' => $facturas->sum('monto_facturado'),
+            'total_proveedores' => $facturas->groupBy('pago.codprov')->count()
+        ];
+
+        // Agrupar por proveedor
+        $porProveedor = $facturas->groupBy(function($item) {
+            return $item->pago->proveedor->descrip ?? $item->pago->codprov ?? 'Sin proveedor';
+        });
+
+        // Proveedores para el filtro
+        $proveedores = Saprov::where('pagomotos', 1)->orderBy('descrip')->get();
+
+        $view = view('pagos-proveedores.reporte-facturas', compact(
+            'facturas',
+            'estadisticas',
+            'porProveedor',
+            'fecha_desde',
+            'fecha_hasta',
+            'proveedor',
+            'numero_factura',
+            'proveedores'
+        ))->render();
+
+        if ($request->ajax()) {
+            return response()->json(['html' => $view]);
+        }
+
+        return view('pagos-proveedores.reporte-facturas', compact(
+            'facturas',
+            'estadisticas',
+            'porProveedor',
+            'fecha_desde',
+            'fecha_hasta',
+            'proveedor',
+            'numero_factura',
+            'proveedores'
+        ));
+    }
+
+// Exportar reporte a Excel
+    public function exportarReporteFacturas(Request $request)
+    {
+        $fecha_desde = $request->fecha_desde ?? date('Y-m-01');
+        $fecha_hasta = $request->fecha_hasta ?? date('Y-m-d');
+        $proveedor = $request->proveedor ?? '';
+
+        $query = FacturaProveedor::with(['pago', 'pagoDetalle', 'pago.proveedor'])
+            ->whereBetween('fecha_factura', [$fecha_desde, $fecha_hasta]);
+
+        if ($proveedor) {
+            $query->whereHas('pago', function($q) use ($proveedor) {
+                $q->where('codprov', $proveedor);
+            });
+        }
+
+        $facturas = $query->orderBy('fecha_factura', 'desc')
+            ->orderBy('numero_factura', 'asc')
+            ->get();
+
+        $data = [];
+        foreach ($facturas as $factura) {
+            $data[] = [
+                'N° Factura' => $factura->numero_factura,
+                'Fecha Factura' => $factura->fecha_factura->format('d/m/Y'),
+                'Proveedor' => $factura->pago->proveedor->descrip ?? $factura->pago->codprov ?? 'N/A',
+                'Producto' => $factura->pagoDetalle->producto_descrip ?? 'N/A',
+                'Cantidad' => $factura->cantidad_facturada,
+                'Monto Unitario' => $factura->monto_facturado / $factura->cantidad_facturada,
+                'Monto Total' => $factura->monto_facturado,
+                'Pedido' => $factura->pago->folio ?? 'N/A',
+                'N° Aprobación' => $factura->pago->numero_aprobacion ?? '',
+                'Notas' => $factura->notas ?? ''
+            ];
+        }
+
+        return Excel::download(new ReporteFacturasExport($data), 'reporte_facturas_' . now()->format('Y-m-d') . '.xlsx');
+    }
+
     public function index(Request $request)
     {
         $estado      = (isset($request->estado))? $request->estado : 'pendiente ';

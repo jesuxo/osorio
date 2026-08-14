@@ -410,8 +410,8 @@ class PagoProveedorController extends Controller
                     'producto_descrip'   => $detalle->producto_descrip,
                     'cantidad'           => $detalle->cantidad,
                     'cantidad_recibida'  => $detalle->cantidad_recibida,
-                    'cantidad_facturada' => $detalle->cantidad_facturada, // ← Este es el total acumulado
-                    'pendiente_facturar' => $detalle->pendiente_facturar,
+                    'cantidad_facturada' => $detalle->cantidad_facturada, // ← ESTE ES EL CAMPO IMPORTANTE
+                    'pendiente_facturar' => $detalle->cantidad - $detalle->cantidad_facturada,
                     'facturas'           => $detalle->facturas->map(function($factura) {
                         return [
                             'id' => $factura->id,
@@ -419,8 +419,7 @@ class PagoProveedorController extends Controller
                             'fecha_factura' => $factura->fecha_factura->format('Y-m-d'),
                             'cantidad_facturada' => $factura->cantidad_facturada,
                             'monto_facturado' => $factura->monto_facturado,
-                            'archivo_path' => $factura->archivo_path,
-                            'notas' => $factura->notas
+                            'archivo_path' => $factura->archivo_path
                         ];
                     }),
                     'precio_unitario'    => $detalle->precio_unitario,

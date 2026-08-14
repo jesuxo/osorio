@@ -722,7 +722,8 @@
                     ${productosTemporales.length === 0 ?
                 '<tr class="text-muted"><td colspan="9" class="text-center">No hay productos agregados</td></tr>' :
                 productosTemporales.map((prod, index) => {
-                    const totalFacturado = prod.facturas ? prod.facturas.reduce((sum, f) => sum + f.cantidad_facturada, 0) : 0;
+                    // USAR DIRECTAMENTE prod.cantidad_facturada
+                    const totalFacturado = prod.cantidad_facturada || 0;
                     const pendienteFacturar = prod.cantidad - totalFacturado;
 
                     return `
@@ -1004,11 +1005,21 @@
             const producto = productosTemporales[index];
             const detalleId = producto.id;
 
+            // Calcular pendiente basado en cantidad_facturada
+            const pendienteFacturar = producto.cantidad - (producto.cantidad_facturada || 0);
+
             const modalContent = `
         <div class="container-fluid">
             <h5 class="mb-3"><i class="bi bi-receipt me-2"></i>Agregar Factura</h5>
-            <p><strong>Producto:</strong> ${producto.producto_descrip}</p>
-            <p><strong>Disponible para facturar:</strong> <span class="badge bg-warning">${maxCantidad}</span></p>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Producto:</strong> ${producto.producto_descrip}</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p><strong>Ya facturado:</strong> <span class="badge bg-primary">${producto.cantidad_facturada || 0}</span></p>
+                    <p><strong>Disponible para facturar:</strong> <span class="badge bg-warning">${pendienteFacturar}</span></p>
+                </div>
+            </div>
 
             <form id="formAgregarFactura">
                 <input type="hidden" id="factura_detalle_id" value="${detalleId}">
@@ -1027,8 +1038,8 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">Cantidad a Facturar <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="factura_cantidad" min="1" max="${maxCantidad}" value="1" required>
-                        <small class="text-muted">Máximo: ${maxCantidad}</small>
+                        <input type="number" class="form-control" id="factura_cantidad" min="1" max="${pendienteFacturar}" value="1" required>
+                        <small class="text-muted">Máximo: ${pendienteFacturar}</small>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">Monto Facturado <span class="text-danger">*</span></label>
@@ -1074,7 +1085,7 @@
             document.getElementById('modalBody').innerHTML = modalContent;
             modalPago.show();
 
-            // Evento para previsualizar archivo
+            // Eventos...
             $('#factura_archivo').off('change').on('change', function(e) {
                 const file = e.target.files[0];
                 if (file) {
@@ -1086,12 +1097,10 @@
                 }
             });
 
-            // Evento para guardar factura
             $('#btnGuardarFactura').off('click').on('click', function() {
                 guardarFactura();
             });
 
-            // Validar cantidad máxima
             $('#factura_cantidad').off('change').on('change', function() {
                 const max = parseInt($(this).attr('max')) || 0;
                 let valor = parseInt($(this).val()) || 0;
@@ -1173,20 +1182,25 @@
         function recargarProductoConFacturas(index) {
             // Recargar los productos desde el servidor
             const pagoId = pagoActualId;
+            mostrarLoading(true);
+
             fetch(`/pagos-proveedores/${pagoId}/productos`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Actualizar el array de productos temporales
+                        // Actualizar el array de productos temporales con los datos nuevos
                         productosTemporales = data.productos;
                         // Recargar la vista de edición
                         abrirModalEditarProductos(pagoId);
                         mostrarToast('Productos actualizados', 'Éxito', 'success');
+                    } else {
+                        mostrarToast('Error al recargar productos', 'Error', 'danger');
                     }
                 })
                 .catch(() => {
-                    mostrarToast('Error al recargar productos', 'Error', 'danger');
-                });
+                    mostrarToast('Error de conexión', 'Error', 'danger');
+                })
+                .finally(() => mostrarLoading(false));
         }
 
         function mostrarModalVerFacturas(index) {
@@ -1563,10 +1577,9 @@
                 producto_codprod: productoCodprod,
                 producto_descrip: productoDescrip,
                 cantidad: cantidad,
-                cantidad_facturada: 0,
                 cantidad_recibida: 0,
-                numero_factura: '',
-                fecha_factura: '',
+                cantidad_facturada: 0, // ← Inicializar en 0
+                facturas: [],
                 precio_unitario: precio,
                 subtotal: subtotal
             });

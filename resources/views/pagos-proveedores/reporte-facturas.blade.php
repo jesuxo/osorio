@@ -78,7 +78,7 @@
 
         {{-- Filtros --}}
         <div class="filtros-card">
-            <form id="filtrosForm" method="GET" action="{{ route('pagos-proveedores.reporte-facturas') }}" class="row g-3">
+            <form id="filtrosForm" method="GET" action="{{ route('reporte-facturas') }}" class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label fw-bold">Fecha Desde</label>
                     <input type="date" class="form-control" name="fecha_desde" value="{{ $fecha_desde }}">
@@ -292,7 +292,7 @@
             form.submit();
             // Restaurar acción original
             setTimeout(() => {
-                form.action = '{{ route("pagos-proveedores.reporte-facturas") }}';
+                form.action = '{{ route("reporte-facturas") }}';
             }, 100);
         }
 

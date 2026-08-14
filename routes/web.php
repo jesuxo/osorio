@@ -128,6 +128,10 @@ Route::middleware(['auth', 'redirect.to.comercial'])->group(function () {
 
 
 Route::middleware(['auth'])->group(function () {
+
+    Route::get('/pagos-proveedores/reporte-facturas', [PagoProveedorController::class, 'reporteFacturas'])->name('reporte-facturas');
+
+
     // Ruta para cambiar de comercial
     Route::get('/cambiarcomercial/{comercialId}', [ComercialDashboardController::class, 'cambiarComercial'])
         ->name('comercial.cambiar');
@@ -211,7 +215,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/exportar-facturas', [PagoProveedorController::class, 'exportarReporteFacturas'])->name('exportar-facturas');
     });
 
-    Route::get('/pagos-proveedores/reporte-facturas', [PagoProveedorController::class, 'reporteFacturas'])->name('reporte-facturas');
 
     Route::get('/motosporfecha', [PagoProveedorController::class, 'motosPorFecha'])->name('motosPorFecha');
 

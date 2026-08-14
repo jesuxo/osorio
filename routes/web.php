@@ -17,6 +17,7 @@ use App\Http\Controllers\ChatConversationController;
 use App\Http\Controllers\SavendController;
 //use App\Http\Controllers\ShopController;
 use App\Http\Controllers\IAController;
+use App\Http\Controllers\ViajegastoController;
 use App\Http\Controllers\CwtransferenciasController;
 use App\Http\Controllers\ChoferController;
 use App\Http\Controllers\CamionController;
@@ -346,6 +347,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Búsqueda por fecha
     Route::get('viajes/por-fecha/{fecha}', [ViajeController::class, 'porFecha'])->name('viajes.por-fecha');
+    Route::patch('viajes/{id}/gastos/{gastoId}/gasto-real', [ViajegastoController::class, 'updateGastoReal'])->name('gastos.gasto-real');
 /*
     Route::get('viajes/{id}/detalles', [ViajeController::class, 'apiDetalles'])->name('viajes.detalles');
     Route::get('viajes/{id}/etapas', [ViajeController::class, 'apiEtapas'])->name('viajes.etapas');

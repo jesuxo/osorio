@@ -10,6 +10,7 @@ use App\Models\Cwtipogasto;
 use App\Models\Cwviaje;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class ViajegastoController extends Controller
 {
@@ -62,11 +63,39 @@ class ViajegastoController extends Controller
         return view('gastos.create', compact('tiposGasto', 'viaje', 'camion', 'chofer'));
     }
 
+
+    public function updateGastoReal(Request $request, $id, $gastoId)
+    {
+        $viaje = Cwviaje::findOrFail($id);
+        $gasto = Cwgasto::where('gastable_id', $viaje->id)
+            ->where('gastable_type', Cwviaje::class)
+            ->where('id', $gastoId)
+            ->firstOrFail();
+
+        $validator = Validator::make($request->all(), [
+            'gasto_real' => 'required|numeric|min:0'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $gasto->update([
+            'gasto_real' => $request->gasto_real
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gasto real actualizado correctamente',
+            'gasto' => $gasto
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
             'tipo_gasto_id'       => 'required|exists:tipo_gastos,id',
-            'concepto'            => 'required|string|max:255',
+            'concepto'            => 'nullable|string|max:255',
             'descripcion'         => 'nullable|string',
             'monto'               => 'required|numeric|min:0',
             'fecha_gasto'         => 'required|date',
@@ -119,7 +148,7 @@ class ViajegastoController extends Controller
     {
         $validated = $request->validate([
             'tipo_gasto_id'       => 'required|exists:tipo_gastos,id',
-            'concepto'            => 'required|string|max:255',
+            'concepto'            => 'nullable|string|max:255',
             'descripcion'         => 'nullable|string',
             'monto'               => 'required|numeric|min:0',
             'fecha_gasto'         => 'required|date',

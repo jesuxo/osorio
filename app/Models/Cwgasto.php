@@ -14,7 +14,7 @@ class Cwgasto extends Model
 
     protected $fillable = [
         'tipo_gasto_id', 'concepto', 'descripcion', 'monto', 'moneda_original',
-        'monto_original', 'tasa_cambio', 'fecha_gasto',
+        'monto_original', 'tasa_cambio', 'fecha_gasto','gasto_real',
         'gastable_id', 'gastable_type', 'comprobante', 'proveedor', 'es_viatico',
         'metodo_pago', 'referencia_pago', 'deducible_impuestos', 'registrado_por'
     ];

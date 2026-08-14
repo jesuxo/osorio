@@ -3,6 +3,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ReporteFacturasExport;
 use App\Exports\ResumenPagosExport;
 use App\Models\FacturaProveedor;
 use App\Models\PagoProveedor;

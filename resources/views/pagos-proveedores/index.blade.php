@@ -669,20 +669,26 @@
                     if (data.success) {
                         productosTemporales = data.productos.map(p => ({
                             producto_id: p.producto_id,
-                            producto_codprod: p.producto_codprod,
-                            producto_descrip: p.producto_descrip,
-                            cantidad: p.cantidad,
-                            cantidad_recibida: p.cantidad_recibida || 0, // ← AGREGAR ESTO
-                            cantidad_facturada: p.cantidad_facturada || 0,
-                            facturas: p.facturas || [], // ← AGREGAR ESTO
-                            precio_unitario: p.precio_unitario,
-                            subtotal: p.cantidad * p.precio_unitario,
-                            id: p.id
+                            producto_codprod: p.producto_codprod || '',
+                            producto_descrip: p.producto_descrip || '',
+                            cantidad: parseInt(p.cantidad) || 0,
+                            cantidad_recibida: parseInt(p.cantidad_recibida) || 0,
+                            cantidad_facturada: parseInt(p.cantidad_facturada) || 0,
+                            facturas: (p.facturas || []).map(f => ({
+                                id: parseInt(f.id) || 0,
+                                numero_factura: f.numero_factura || '',
+                                fecha_factura: f.fecha_factura || '',
+                                cantidad_facturada: parseInt(f.cantidad_facturada) || 0,
+                                monto_facturado: parseFloat(f.monto_facturado) || 0, // ← Asegurar que es número
+                                archivo_path: f.archivo_path || null
+                            })),
+                            precio_unitario: parseFloat(p.precio_unitario) || 0,
+                            subtotal: parseFloat(p.subtotal) || 0,
+                            id: parseInt(p.id) || 0
                         }));
 
-                        console.log('Productos cargados:', productosTemporales); // Debug
+                        console.log('Productos cargados:', productosTemporales);
 
-                        // IMPORTANTE: Activar modo edición ANTES de abrir el modal
                         window.modoEdicion = true;
                         window.pagoEditandoId = id;
 
@@ -1249,13 +1255,17 @@
     `;
 
             producto.facturas.forEach((factura, i) => {
+                // Asegurar que los valores sean números
+                const cantidad = parseInt(factura.cantidad_facturada) || 0;
+                const monto = parseFloat(factura.monto_facturado) || 0;
+
                 html += `
             <tr>
                 <td>${i + 1}</td>
-                <td><strong>${factura.numero_factura}</strong></td>
-                <td>${factura.fecha_factura}</td>
-                <td>${factura.cantidad_facturada}</td>
-                <td>$${factura.monto_facturado.toFixed(2)}</td>
+                <td><strong>${factura.numero_factura || 'N/A'}</strong></td>
+                <td>${factura.fecha_factura || 'N/A'}</td>
+                <td>${cantidad}</td>
+                <td>$${monto.toFixed(2)}</td>
                 <td>
                     ${factura.archivo_path ? `
                         <a href="/${factura.archivo_path}" target="_blank" class="btn btn-sm btn-info">
@@ -1264,7 +1274,10 @@
                     ` : 'Sin archivo'}
                 </td>
                 <td>
-                    <button type="button" class="btn btn-sm btn-danger btn-eliminar-factura" data-factura-id="${factura.id}" data-pago-id="${pagoActualId}">
+                    <button type="button" class="btn btn-sm btn-danger btn-eliminar-factura"
+                            data-factura-id="${factura.id}"
+                            data-pago-id="${pagoActualId}"
+                            data-producto-index="${index}">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
@@ -1272,13 +1285,17 @@
         `;
             });
 
+            // Calcular totales con parseFloat para evitar errores
+            const totalCantidad = producto.facturas.reduce((sum, f) => sum + (parseInt(f.cantidad_facturada) || 0), 0);
+            const totalMonto = producto.facturas.reduce((sum, f) => sum + (parseFloat(f.monto_facturado) || 0), 0);
+
             html += `
                     </tbody>
                     <tfoot class="table-secondary">
                         <tr>
                             <th colspan="3" class="text-end">Totales:</th>
-                            <th>${producto.facturas.reduce((sum, f) => sum + f.cantidad_facturada, 0)}</th>
-                            <th>$${producto.facturas.reduce((sum, f) => sum + f.monto_facturado, 0).toFixed(2)}</th>
+                            <th>${totalCantidad}</th>
+                            <th>$${totalMonto.toFixed(2)}</th>
                             <th colspan="2"></th>
                         </tr>
                     </tfoot>
@@ -1299,9 +1316,10 @@
             $('.btn-eliminar-factura').off('click').on('click', function() {
                 const facturaId = $(this).data('factura-id');
                 const pagoId = $(this).data('pago-id');
+                const productoIndex = $(this).data('producto-index');
 
                 if (confirm('¿Está seguro de eliminar esta factura?')) {
-                    eliminarFactura(pagoId, facturaId, index);
+                    eliminarFactura(pagoId, facturaId, productoIndex);
                 }
             });
         }
@@ -1655,24 +1673,29 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Actualizar el array de productos temporales con TODOS los datos
                         productosTemporales = data.productos.map(p => ({
                             producto_id: p.producto_id,
-                            producto_codprod: p.producto_codprod,
-                            producto_descrip: p.producto_descrip,
-                            cantidad: p.cantidad,
-                            cantidad_recibida: p.cantidad_recibida || 0, // ← IMPORTANTE
-                            cantidad_facturada: p.cantidad_facturada || 0,
-                            facturas: p.facturas || [],
-                            precio_unitario: p.precio_unitario,
-                            subtotal: p.cantidad * p.precio_unitario,
-                            id: p.id
+                            producto_codprod: p.producto_codprod || '',
+                            producto_descrip: p.producto_descrip || '',
+                            cantidad: parseInt(p.cantidad) || 0,
+                            cantidad_recibida: parseInt(p.cantidad_recibida) || 0,
+                            cantidad_facturada: parseInt(p.cantidad_facturada) || 0,
+                            facturas: (p.facturas || []).map(f => ({
+                                id: parseInt(f.id) || 0,
+                                numero_factura: f.numero_factura || '',
+                                fecha_factura: f.fecha_factura || '',
+                                cantidad_facturada: parseInt(f.cantidad_facturada) || 0,
+                                monto_facturado: parseFloat(f.monto_facturado) || 0,
+                                archivo_path: f.archivo_path || null
+                            })),
+                            precio_unitario: parseFloat(p.precio_unitario) || 0,
+                            subtotal: parseFloat(p.subtotal) || 0,
+                            id: parseInt(p.id) || 0
                         }));
 
                         console.log('✅ Productos recargados:', productosTemporales);
 
                         if (recargarModal) {
-                            // Recargar la vista de edición
                             abrirModalEditarProductos(pagoId);
                         }
 

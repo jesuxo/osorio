@@ -408,22 +408,22 @@ class PagoProveedorController extends Controller
                     'producto_id'        => $detalle->producto_id,
                     'producto_codprod'   => $detalle->producto_codprod,
                     'producto_descrip'   => $detalle->producto_descrip,
-                    'cantidad'           => $detalle->cantidad,
-                    'cantidad_recibida'  => $detalle->cantidad_recibida, // ← ESTÁ BIEN
-                    'cantidad_facturada' => $detalle->cantidad_facturada,
-                    'pendiente_facturar' => $detalle->cantidad - $detalle->cantidad_facturada,
+                    'cantidad'           => (int) $detalle->cantidad,
+                    'cantidad_recibida'  => (int) $detalle->cantidad_recibida,
+                    'cantidad_facturada' => (int) $detalle->cantidad_facturada,
+                    'pendiente_facturar' => (int) ($detalle->cantidad - $detalle->cantidad_facturada),
                     'facturas'           => $detalle->facturas->map(function($factura) {
                         return [
-                            'id' => $factura->id,
-                            'numero_factura' => $factura->numero_factura,
-                            'fecha_factura' => $factura->fecha_factura->format('Y-m-d'),
-                            'cantidad_facturada' => $factura->cantidad_facturada,
-                            'monto_facturado' => $factura->monto_facturado,
-                            'archivo_path' => $factura->archivo_path
+                            'id' => (int) $factura->id,
+                            'numero_factura' => $factura->numero_factura ?? '',
+                            'fecha_factura' => $factura->fecha_factura ? $factura->fecha_factura->format('Y-m-d') : '',
+                            'cantidad_facturada' => (int) $factura->cantidad_facturada,
+                            'monto_facturado' => (float) $factura->monto_facturado, // ← Asegurar que es float
+                            'archivo_path' => $factura->archivo_path ?? null
                         ];
                     }),
-                    'precio_unitario'    => $detalle->precio_unitario,
-                    'subtotal'           => $detalle->subtotal
+                    'precio_unitario'    => (float) $detalle->precio_unitario,
+                    'subtotal'           => (float) $detalle->subtotal
                 ];
             })
         ]);

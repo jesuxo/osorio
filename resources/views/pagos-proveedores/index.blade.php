@@ -672,11 +672,15 @@
                             producto_codprod: p.producto_codprod,
                             producto_descrip: p.producto_descrip,
                             cantidad: p.cantidad,
-                            cantidad_facturada: p.cantidad_facturada || 0, // AGREGADO
+                            cantidad_recibida: p.cantidad_recibida || 0, // ← AGREGAR ESTO
+                            cantidad_facturada: p.cantidad_facturada || 0,
+                            facturas: p.facturas || [], // ← AGREGAR ESTO
                             precio_unitario: p.precio_unitario,
                             subtotal: p.cantidad * p.precio_unitario,
                             id: p.id
                         }));
+
+                        console.log('Productos cargados:', productosTemporales); // Debug
 
                         // IMPORTANTE: Activar modo edición ANTES de abrir el modal
                         window.modoEdicion = true;
@@ -684,7 +688,7 @@
 
                         abrirModalEditarProductos(id);
                         setTimeout(() => {
-                            inicializarTooltips(); // Agregar esta línea después de abrir el modal
+                            inicializarTooltips();
                         }, 200);
                     } else {
                         mostrarToast('Error al cargar productos', 'Error', 'danger');
@@ -1651,8 +1655,20 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Actualizar el array de productos temporales
-                        productosTemporales = data.productos;
+                        // Actualizar el array de productos temporales con TODOS los datos
+                        productosTemporales = data.productos.map(p => ({
+                            producto_id: p.producto_id,
+                            producto_codprod: p.producto_codprod,
+                            producto_descrip: p.producto_descrip,
+                            cantidad: p.cantidad,
+                            cantidad_recibida: p.cantidad_recibida || 0, // ← IMPORTANTE
+                            cantidad_facturada: p.cantidad_facturada || 0,
+                            facturas: p.facturas || [],
+                            precio_unitario: p.precio_unitario,
+                            subtotal: p.cantidad * p.precio_unitario,
+                            id: p.id
+                        }));
+
                         console.log('✅ Productos recargados:', productosTemporales);
 
                         if (recargarModal) {

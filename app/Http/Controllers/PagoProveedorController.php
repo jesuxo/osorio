@@ -409,7 +409,7 @@ class PagoProveedorController extends Controller
                     'producto_codprod'   => $detalle->producto_codprod,
                     'producto_descrip'   => $detalle->producto_descrip,
                     'cantidad'           => $detalle->cantidad,
-                    'cantidad_recibida'  => $detalle->cantidad_recibida, // ← ESTE ES EL CAMPO IMPORTANTE
+                    'cantidad_recibida'  => $detalle->cantidad_recibida, // ← ESTÁ BIEN
                     'cantidad_facturada' => $detalle->cantidad_facturada,
                     'pendiente_facturar' => $detalle->cantidad - $detalle->cantidad_facturada,
                     'facturas'           => $detalle->facturas->map(function($factura) {

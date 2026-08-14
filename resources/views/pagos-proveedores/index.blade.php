@@ -709,19 +709,23 @@
                     <tr>
                         <th>Producto</th>
                         <th width="80">Cantidad</th>
-                        <th width="80">Facturadas</th>
                         <th width="80">Recibidas</th>
-                        <th width="100">Precio Unitario</th>
+                        <th width="100">Facturadas</th>
+                        <th width="100">Pendientes</th>
+                        <th width="100">Precio</th>
                         <th width="100">Subtotal</th>
-                        <th width="150">N° Factura</th>
-                        <th width="130">Fecha Factura</th>
+                        <th width="180">Facturas</th>
                         <th width="50">Acción</th>
                     </tr>
                 </thead>
                 <tbody id="tbodyProductosEdit">
                     ${productosTemporales.length === 0 ?
                 '<tr class="text-muted"><td colspan="9" class="text-center">No hay productos agregados</td></tr>' :
-                productosTemporales.map((prod, index) => `
+                productosTemporales.map((prod, index) => {
+                    const totalFacturado = prod.facturas ? prod.facturas.reduce((sum, f) => sum + f.cantidad_facturada, 0) : 0;
+                    const pendienteFacturar = prod.cantidad - totalFacturado;
+
+                    return `
                                 <tr data-index="${index}">
                                     <td>
                                         <strong>${prod.producto_descrip}</strong>
@@ -732,19 +736,18 @@
                                     <td>
                                         <div class="input-group input-group-sm">
                                             <button type="button" class="btn btn-outline-secondary btn-cantidad-menor" data-index="${index}">-</button>
-                                            <input type="number" class="form-control text-center cantidad-edit" data-index="${index}" value="${prod.cantidad}" min="1" style="width: 60px;">
+                                            <input type="number" class="form-control text-center cantidad-edit" data-index="${index}" value="${prod.cantidad}" min="1" style="width: 50px;">
                                             <button type="button" class="btn btn-outline-secondary btn-cantidad-mayor" data-index="${index}">+</button>
                                         </div>
                                     </td>
                                     <td>
-                                        <div class="input-group input-group-sm">
-                                            <button type="button" class="btn btn-outline-secondary btn-facturada-menor" data-index="${index}">-</button>
-                                            <input type="number" class="form-control text-center cantidad-facturada-edit" data-index="${index}" value="${prod.cantidad_facturada || 0}" min="0" max="${prod.cantidad}" style="width: 60px;">
-                                            <button type="button" class="btn btn-outline-secondary btn-facturada-mayor" data-index="${index}">+</button>
-                                        </div>
+                                        <span class="badge bg-secondary">${prod.cantidad_recibida || 0}</span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-secondary">${prod.cantidad_recibida || 0}</span>
+                                        <span class="badge bg-primary">${totalFacturado}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge ${pendienteFacturar > 0 ? 'bg-warning' : 'bg-success'}">${pendienteFacturar}</span>
                                     </td>
                                     <td>
                                         <div class="input-group input-group-sm">
@@ -754,10 +757,16 @@
                                     </td>
                                     <td class="subtotal-edit" data-index="${index}">$${prod.subtotal.toFixed(2)}</td>
                                     <td>
-                                        <input type="text" class="form-control form-control-sm numero-factura-edit" data-index="${index}" value="${prod.numero_factura || ''}" placeholder="N° Factura" style="width: 130px;">
-                                    </td>
-                                    <td>
-                                        <input type="date" class="form-control form-control-sm fecha-factura-edit" data-index="${index}" value="${prod.fecha_factura || ''}" style="width: 130px;">
+                                        <div class="d-flex flex-column gap-1">
+                                            <button type="button" class="btn btn-sm btn-outline-primary btn-agregar-factura" data-index="${index}" ${pendienteFacturar <= 0 ? 'disabled' : ''}>
+                                                <i class="bi bi-plus-circle me-1"></i> Agregar Factura
+                                            </button>
+                                            ${prod.facturas && prod.facturas.length > 0 ? `
+                                                <button type="button" class="btn btn-sm btn-outline-info btn-ver-facturas" data-index="${index}">
+                                                    <i class="bi bi-list me-1"></i> Ver (${prod.facturas.length})
+                                                </button>
+                                            ` : ''}
+                                        </div>
                                     </td>
                                     <td class="text-center">
                                         <button type="button" class="btn btn-sm btn-danger btn-eliminar-producto" data-index="${index}" title="Eliminar">
@@ -765,14 +774,15 @@
                                         </button>
                                     </td>
                                 </tr>
-                            `).join('')
+                            `;
+                }).join('')
             }
                 </tbody>
                 <tfoot class="table-secondary">
                     <tr>
-                        <th colspan="5" class="text-end">Total:</th>
+                        <th colspan="6" class="text-end">Total:</th>
                         <th id="totalEditPago">$${productosTemporales.reduce((sum, p) => sum + p.subtotal, 0).toFixed(2)}</th>
-                        <th colspan="3"></th>
+                        <th colspan="2"></th>
                     </tr>
                 </tfoot>
             </table>
@@ -791,6 +801,7 @@
 
             setTimeout(() => {
                 inicializarEventosEdicion();
+                inicializarEventosFacturas();
                 inicializarTooltips();
 
                 $('#btnAgregarProductoEdit').off('click').on('click', function() {
@@ -960,6 +971,333 @@
                 total += prod.subtotal;
             });
             $('#totalEditPago').text('$' + total.toFixed(2));
+        }
+
+        function inicializarEventosFacturas() {
+            // Botón para agregar factura
+            $('.btn-agregar-factura').off('click').on('click', function() {
+                const index = $(this).data('index');
+                const producto = productosTemporales[index];
+                if (!producto) return;
+
+                const pendienteFacturar = producto.cantidad - (producto.facturas ? producto.facturas.reduce((sum, f) => sum + f.cantidad_facturada, 0) : 0);
+
+                if (pendienteFacturar <= 0) {
+                    mostrarToast('Este producto ya está completamente facturado', 'Advertencia', 'warning');
+                    return;
+                }
+
+                mostrarModalAgregarFactura(index, pendienteFacturar);
+            });
+
+            // Botón para ver facturas
+            $('.btn-ver-facturas').off('click').on('click', function() {
+                const index = $(this).data('index');
+                const producto = productosTemporales[index];
+                if (!producto || !producto.facturas || producto.facturas.length === 0) return;
+
+                mostrarModalVerFacturas(index);
+            });
+        }
+
+        function mostrarModalAgregarFactura(index, maxCantidad) {
+            const producto = productosTemporales[index];
+            const detalleId = producto.id;
+
+            const modalContent = `
+        <div class="container-fluid">
+            <h5 class="mb-3"><i class="bi bi-receipt me-2"></i>Agregar Factura</h5>
+            <p><strong>Producto:</strong> ${producto.producto_descrip}</p>
+            <p><strong>Disponible para facturar:</strong> <span class="badge bg-warning">${maxCantidad}</span></p>
+
+            <form id="formAgregarFactura">
+                <input type="hidden" id="factura_detalle_id" value="${detalleId}">
+                <input type="hidden" id="factura_index" value="${index}">
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Número de Factura <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="factura_numero" placeholder="Ej: 001-2025" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Fecha de Factura <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="factura_fecha" value="${new Date().toISOString().split('T')[0]}" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Cantidad a Facturar <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="factura_cantidad" min="1" max="${maxCantidad}" value="1" required>
+                        <small class="text-muted">Máximo: ${maxCantidad}</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Monto Facturado <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="factura_monto" step="0.01" min="0" value="${producto.precio_unitario}" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-bold">Notas</label>
+                        <textarea class="form-control" id="factura_notas" rows="2" placeholder="Observaciones..."></textarea>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label fw-bold">Archivo (PDF/Imagen)</label>
+                        <input type="file" class="form-control" id="factura_archivo" accept=".pdf,.jpg,.jpeg,.png,.gif">
+                        <small class="text-muted">Formatos permitidos: PDF, JPG, PNG, GIF (Máx 10MB)</small>
+                    </div>
+                </div>
+            </form>
+
+            <div id="previewFactura" style="display: none;" class="mt-2">
+                <div class="alert alert-info">
+                    <i class="bi bi-file-earmark-check me-2"></i>
+                    <span id="nombreArchivoFactura"></span>
+                </div>
+            </div>
+
+            <hr>
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnGuardarFactura">
+                    <i class="bi bi-save me-1"></i>Guardar Factura
+                </button>
+            </div>
+        </div>
+    `;
+
+            document.getElementById('modalTitleText').innerHTML = '<i class="bi bi-receipt me-2"></i>Registrar Factura';
+            document.getElementById('modalBody').innerHTML = modalContent;
+            modalPago.show();
+
+            // Evento para previsualizar archivo
+            $('#factura_archivo').off('change').on('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const tamanoMB = (file.size / (1024 * 1024)).toFixed(2);
+                    $('#nombreArchivoFactura').text(`${file.name} (${tamanoMB} MB)`);
+                    $('#previewFactura').show();
+                } else {
+                    $('#previewFactura').hide();
+                }
+            });
+
+            // Evento para guardar factura
+            $('#btnGuardarFactura').off('click').on('click', function() {
+                guardarFactura();
+            });
+
+            // Validar cantidad máxima
+            $('#factura_cantidad').off('change').on('change', function() {
+                const max = parseInt($(this).attr('max')) || 0;
+                let valor = parseInt($(this).val()) || 0;
+                if (valor > max) {
+                    $(this).val(max);
+                    mostrarToast(`La cantidad no puede exceder ${max}`, 'Advertencia', 'warning');
+                }
+                if (valor < 1) {
+                    $(this).val(1);
+                }
+            });
+        }
+
+        function guardarFactura() {
+            const detalleId = $('#factura_detalle_id').val();
+            const index = parseInt($('#factura_index').val());
+            const numeroFactura = $('#factura_numero').val().trim();
+            const fechaFactura = $('#factura_fecha').val();
+            const cantidad = parseInt($('#factura_cantidad').val());
+            const monto = parseFloat($('#factura_monto').val());
+            const notas = $('#factura_notas').val();
+            const archivo = $('#factura_archivo')[0].files[0];
+
+            // Validaciones
+            if (!numeroFactura) {
+                mostrarToast('Ingrese el número de factura', 'Error', 'danger');
+                return;
+            }
+            if (!fechaFactura) {
+                mostrarToast('Seleccione la fecha de factura', 'Error', 'danger');
+                return;
+            }
+            if (!cantidad || cantidad < 1) {
+                mostrarToast('Ingrese una cantidad válida', 'Error', 'danger');
+                return;
+            }
+            if (!monto || monto < 0) {
+                mostrarToast('Ingrese un monto válido', 'Error', 'danger');
+                return;
+            }
+
+            mostrarLoading(true);
+
+            const formData = new FormData();
+            formData.append('numero_factura', numeroFactura);
+            formData.append('fecha_factura', fechaFactura);
+            formData.append('cantidad_facturada', cantidad);
+            formData.append('monto_facturado', monto);
+            formData.append('notas', notas);
+            if (archivo) {
+                formData.append('archivo', archivo);
+            }
+
+            fetch(`/pagos-proveedores/detalles/${detalleId}/facturas`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        mostrarToast(data.message, 'Éxito', 'success');
+                        // Recargar el producto con sus facturas actualizadas
+                        recargarProductoConFacturas(index);
+                        $('#modalPago').modal('hide');
+                    } else {
+                        mostrarToast(data.error || 'Error al guardar factura', 'Error', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    mostrarToast('Error de conexión', 'Error', 'danger');
+                })
+                .finally(() => mostrarLoading(false));
+        }
+
+        function recargarProductoConFacturas(index) {
+            // Recargar los productos desde el servidor
+            const pagoId = pagoActualId;
+            fetch(`/pagos-proveedores/${pagoId}/productos`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Actualizar el array de productos temporales
+                        productosTemporales = data.productos;
+                        // Recargar la vista de edición
+                        abrirModalEditarProductos(pagoId);
+                        mostrarToast('Productos actualizados', 'Éxito', 'success');
+                    }
+                })
+                .catch(() => {
+                    mostrarToast('Error al recargar productos', 'Error', 'danger');
+                });
+        }
+
+        function mostrarModalVerFacturas(index) {
+            const producto = productosTemporales[index];
+            if (!producto || !producto.facturas || producto.facturas.length === 0) {
+                mostrarToast('No hay facturas registradas', 'Información', 'info');
+                return;
+            }
+
+            let html = `
+        <div class="container-fluid">
+            <h5 class="mb-3"><i class="bi bi-receipt me-2"></i>Facturas de "${producto.producto_descrip}"</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>N° Factura</th>
+                            <th>Fecha</th>
+                            <th>Cantidad</th>
+                            <th>Monto</th>
+                            <th>Archivo</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+
+            producto.facturas.forEach((factura, i) => {
+                html += `
+            <tr>
+                <td>${i + 1}</td>
+                <td><strong>${factura.numero_factura}</strong></td>
+                <td>${factura.fecha_factura}</td>
+                <td>${factura.cantidad_facturada}</td>
+                <td>$${factura.monto_facturado.toFixed(2)}</td>
+                <td>
+                    ${factura.archivo_path ? `
+                        <a href="/${factura.archivo_path}" target="_blank" class="btn btn-sm btn-info">
+                            <i class="bi bi-eye"></i> Ver
+                        </a>
+                    ` : 'Sin archivo'}
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger btn-eliminar-factura" data-factura-id="${factura.id}" data-pago-id="${pagoActualId}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+            });
+
+            html += `
+                    </tbody>
+                    <tfoot class="table-secondary">
+                        <tr>
+                            <th colspan="3" class="text-end">Totales:</th>
+                            <th>${producto.facturas.reduce((sum, f) => sum + f.cantidad_facturada, 0)}</th>
+                            <th>$${producto.facturas.reduce((sum, f) => sum + f.monto_facturado, 0).toFixed(2)}</th>
+                            <th colspan="2"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-end">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    `;
+
+            document.getElementById('modalTitleText').innerHTML = '<i class="bi bi-receipt me-2"></i>Lista de Facturas';
+            document.getElementById('modalBody').innerHTML = html;
+            modalPago.show();
+
+            // Evento para eliminar factura
+            $('.btn-eliminar-factura').off('click').on('click', function() {
+                const facturaId = $(this).data('factura-id');
+                const pagoId = $(this).data('pago-id');
+
+                if (confirm('¿Está seguro de eliminar esta factura?')) {
+                    eliminarFactura(pagoId, facturaId, index);
+                }
+            });
+        }
+
+        function eliminarFactura(pagoId, facturaId, productoIndex) {
+            mostrarLoading(true);
+
+            fetch(`/pagos-proveedores/facturas/${facturaId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        mostrarToast(data.message, 'Éxito', 'success');
+                        $('#modalPago').modal('hide');
+                        recargarProductoConFacturas(productoIndex);
+                    } else {
+                        mostrarToast(data.error || 'Error al eliminar', 'Error', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    mostrarToast('Error de conexión', 'Error', 'danger');
+                })
+                .finally(() => mostrarLoading(false));
         }
 
         function guardarProductosEdit(pagoId) {

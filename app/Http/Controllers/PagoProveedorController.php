@@ -4,6 +4,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\ResumenPagosExport;
+use App\Models\FacturaProveedor;
 use App\Models\PagoProveedor;
 use App\Models\PagoProveedorDetalle;
 use App\Models\PagoComprobante;
@@ -298,7 +299,7 @@ class PagoProveedorController extends Controller
 
     public function getProductos($id)
     {
-        $pago = PagoProveedor::with('detalles')->findOrFail($id);
+        $pago = PagoProveedor::with(['detalles.facturas'])->findOrFail($id);
 
         return response()->json([
             'success' => true,
@@ -309,15 +310,136 @@ class PagoProveedorController extends Controller
                     'producto_codprod'   => $detalle->producto_codprod,
                     'producto_descrip'   => $detalle->producto_descrip,
                     'cantidad'           => $detalle->cantidad,
-                    'cantidad_facturada' => $detalle->cantidad_facturada ?? 0,
                     'cantidad_recibida'  => $detalle->cantidad_recibida,
-                    'numero_factura'     => $detalle->numero_factura ?? '',
-                    'fecha_factura'      => $detalle->fecha_factura ? $detalle->fecha_factura->format('Y-m-d') : '',
+                    'facturas'           => $detalle->facturas->map(function($factura) {
+                        return [
+                            'id' => $factura->id,
+                            'numero_factura' => $factura->numero_factura,
+                            'fecha_factura' => $factura->fecha_factura->format('Y-m-d'),
+                            'cantidad_facturada' => $factura->cantidad_facturada,
+                            'monto_facturado' => $factura->monto_facturado,
+                            'archivo_path' => $factura->archivo_path,
+                            'notas' => $factura->notas
+                        ];
+                    }),
                     'precio_unitario'    => $detalle->precio_unitario,
                     'subtotal'           => $detalle->subtotal
                 ];
             })
         ]);
+    }
+
+// Nuevo método para agregar factura a un detalle
+    public function agregarFactura(Request $request, $id)
+    {
+        $detalle = PagoProveedorDetalle::findOrFail($id);
+
+        $request->validate([
+            'numero_factura' => 'required|string|max:50',
+            'fecha_factura' => 'required|date',
+            'cantidad_facturada' => 'required|integer|min:1',
+            'monto_facturado' => 'required|numeric|min:0',
+            'notas' => 'nullable|string',
+            'archivo' => 'nullable|file|mimes:jpeg,png,jpg,gif,pdf|max:10240'
+        ]);
+
+        // Verificar que no exceda la cantidad pendiente
+        $pendienteFacturar = $detalle->pendiente_facturar;
+        if ($request->cantidad_facturada > $pendienteFacturar) {
+            return response()->json([
+                'success' => false,
+                'error' => "La cantidad a facturar ({$request->cantidad_facturada}) excede lo pendiente por facturar ({$pendienteFacturar})"
+            ], 400);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $data = $request->only([
+                'numero_factura',
+                'fecha_factura',
+                'cantidad_facturada',
+                'monto_facturado',
+                'notas'
+            ]);
+
+            $data['pago_detalle_id'] = $detalle->id;
+            $data['pago_id'] = $detalle->pago_id;
+
+            if ($request->hasFile('archivo')) {
+                $archivo = $request->file('archivo');
+                $extension = strtolower($archivo->getClientOriginalExtension());
+                $uploadPath = public_path('uploads/facturas');
+
+                if (!file_exists($uploadPath)) {
+                    mkdir($uploadPath, 0777, true);
+                }
+
+                $nombre_archivo = time() . '_' . uniqid() . '.' . $extension;
+                $archivo->move($uploadPath, $nombre_archivo);
+                $data['archivo_path'] = 'uploads/facturas/' . $nombre_archivo;
+            }
+
+            FacturaProveedor::create($data);
+
+            // Actualizar el estado del pago
+            $detalle->pago->actualizarEstado();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Factura registrada correctamente'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'error' => 'Error al registrar factura: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+// Método para eliminar una factura
+    public function eliminarFactura($id, $facturaId)
+    {
+        $factura = FacturaProveedor::findOrFail($facturaId);
+
+        // Eliminar archivo físico si existe
+        if ($factura->archivo_path) {
+            $rutaArchivo = public_path($factura->archivo_path);
+            if (file_exists($rutaArchivo)) {
+                unlink($rutaArchivo);
+            }
+        }
+
+        $factura->delete();
+
+        // Actualizar estado del pago
+        $pago = PagoProveedor::find($factura->pago_id);
+        if ($pago) {
+            $pago->actualizarEstado();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Factura eliminada correctamente'
+        ]);
+    }
+
+// Obtener facturas de un pago
+    public function getFacturas($id)
+    {
+        $pago = PagoProveedor::with(['detalles.facturas'])->findOrFail($id);
+
+        $facturas = FacturaProveedor::where('pago_id', $id)
+            ->with('pagoDetalle')
+            ->orderBy('fecha_factura', 'desc')
+            ->get();
+
+        $view = view('pagos-proveedores.partials.lista-facturas', compact('pago', 'facturas'))->render();
+        return response()->json(['html' => $view]);
     }
 
     public function update(Request $request, $id)

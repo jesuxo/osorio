@@ -500,27 +500,26 @@ class SaclieController extends Controller
                     $rel->save();
                 }else{
 
-                    $new->id3           = (isset($cliente->id3))       ?$cliente->id3        : '';
-                    $new->fax           = (isset($cliente->fax))       ?$cliente->fax        : '';
-                    $new->clase         = (isset($cliente->clase))     ?$cliente->clase      : '';
-                    $new->telef         = (isset($cliente->telef))     ?$cliente->telef      : '';
-                    $new->movil         = (isset($cliente->movil))     ?$cliente->movil      : '';
-                    $new->email         = (isset($cliente->email))     ?$cliente->email      : '';
-                    $new->direc1        = (isset($cliente->direc1))    ?$cliente->direc1     : '';
-                    $new->direc2        = (isset($cliente->direc2))    ?$cliente->direc2     : '';
-                    $new->direc3        = (isset($cliente->direc3))    ?$cliente->direc3     : '';
-                    $new->activo        = (isset($cliente->activo))   ?$cliente->activo     : 0;
-                    $new->codclie       = $cliente->codclie;
-                    $new->tipocli       = (isset($cliente->tipocli))   ?$cliente->tipocli    : 0;
-                    $new->TipoID3       = (isset($cliente->TipoID3))   ?$cliente->TipoID3    : 0;
-                    $new->descrip       = (isset($cliente->descrip))   ?$cliente->descrip    : '';
-                    $new->represent     = (isset($cliente->represent)) ?$cliente->represent  : '';
-                    $new->escredito     = (isset($cliente->escredito)) ?$cliente->escredito  : 0;
-                    $new->DescripExt    = (isset($cliente->DescripExt))?$cliente->DescripExt : '';
-                    $new->LimiteCred    = (isset($cliente->LimiteCred))?$cliente->LimiteCred : 0;
-                    $new->Observaciones = (isset($cliente->Observaciones)) ?$cliente->Observaciones     : '';
+                    $aux->id3           = (isset($cliente->id3))       ?$cliente->id3        : '';
+                    $aux->fax           = (isset($cliente->fax))       ?$cliente->fax        : '';
+                    $aux->clase         = (isset($cliente->clase))     ?$cliente->clase      : '';
+                    $aux->telef         = (isset($cliente->telef))     ?$cliente->telef      : '';
+                    $aux->movil         = (isset($cliente->movil))     ?$cliente->movil      : '';
+                    $aux->email         = (isset($cliente->email))     ?$cliente->email      : '';
+                    $aux->direc1        = (isset($cliente->direc1))    ?$cliente->direc1     : '';
+                    $aux->direc2        = (isset($cliente->direc2))    ?$cliente->direc2     : '';
+                    $aux->direc3        = (isset($cliente->direc3))    ?$cliente->direc3     : '';
+                    $aux->activo        = (isset($cliente->activo))   ?$cliente->activo     : 0;
+                    $aux->tipocli       = (isset($cliente->tipocli))   ?$cliente->tipocli    : 0;
+                    $aux->TipoID3       = (isset($cliente->TipoID3))   ?$cliente->TipoID3    : 0;
+                    $aux->descrip       = (isset($cliente->descrip))   ?$cliente->descrip    : '';
+                    $aux->represent     = (isset($cliente->represent)) ?$cliente->represent  : '';
+                    $aux->escredito     = (isset($cliente->escredito)) ?$cliente->escredito  : 0;
+                    $aux->DescripExt    = (isset($cliente->DescripExt))?$cliente->DescripExt : '';
+                    $aux->LimiteCred    = (isset($cliente->LimiteCred))?$cliente->LimiteCred : 0;
+                    $aux->Observaciones = (isset($cliente->Observaciones)) ?$cliente->Observaciones     : '';
 
-                    $new->save();
+                    $aux->save();
 
                     $aux = Sacliesucursal::where(['codclie' => $cliente->codclie, 'fk_sucursal'=>$sucursalid])->first();
                     if(!$aux){

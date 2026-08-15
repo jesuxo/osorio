@@ -284,20 +284,30 @@
                         </tbody>
                         <tfoot class="table-secondary">
                         @php
+                            // Totales originales
                             $totalUSDOriginal = $viaje->gastos->where('moneda_original', 'USD')->sum('monto');
                             $totalVES = $viaje->gastos->where('moneda_original', 'VES')->sum('monto_original');
 
-                            // Calcular equivalente en USD de los gastos en VES
-                            $totalVESEnUSD = 0;
+                            // 🔴 CALCULAR GASTO REAL EN USD (usando gasto_real)
+                            $totalUSDReal = 0;
+                            $totalVESReal = 0;
+                            $totalUSDEquivalente = 0;
+
+                            foreach ($viaje->gastos->where('moneda_original', 'USD') as $gasto) {
+                                $gastoReal = $gasto->gasto_real ?? $gasto->monto;
+                                $totalUSDReal += $gastoReal;
+                                $totalUSDEquivalente += $gastoReal;
+                            }
+
                             foreach ($viaje->gastos->where('moneda_original', 'VES') as $gasto) {
+                                $gastoReal = $gasto->gasto_real ?? $gasto->monto_original;
+                                $totalVESReal += $gastoReal;
                                 if ($gasto->tasa_cambio > 0) {
-                                    $totalVESEnUSD += $gasto->monto_original / $gasto->tasa_cambio;
+                                    $totalUSDEquivalente += $gastoReal / $gasto->tasa_cambio;
                                 }
                             }
-                            $totalUSDEquivalente = $totalUSDOriginal + $totalVESEnUSD;
 
-                            $totalGastoReal = $viaje->gastos->sum(function($g) { return $g->gasto_real ?? $g->monto; });
-                            $totalDiferencia = $totalGastoReal - $totalUSDEquivalente;
+                            $totalDiferencia = $totalUSDEquivalente - ($totalUSDOriginal + ($totalVES / 1));
                             $claseTotalDif = $totalDiferencia > 0 ? 'text-success' : ($totalDiferencia < 0 ? 'text-danger' : 'text-muted');
                             $iconoTotalDif = $totalDiferencia > 0 ? '▲' : ($totalDiferencia < 0 ? '▼' : '•');
                         @endphp
@@ -314,8 +324,8 @@
                             <th class="text-center" id="totalGastoReal">
                                 <div>
                                     <strong>${{ number_format($totalUSDEquivalente, 2) }}</strong>
-                                    @if($totalVES > 0)
-                                        <br><small class="text-muted">(USD ${{ number_format($totalUSDOriginal, 2) }} + VES convertido)</small>
+                                    @if($totalVESReal > 0)
+                                        <br><small class="text-muted">(USD real ${{ number_format($totalUSDReal, 2) }} + VES real convertido)</small>
                                     @endif
                                 </div>
                             </th>
@@ -476,6 +486,7 @@
 
         let viajeId = {{ $viaje->id }};
         let gastoRealTimeout = null;
+        let tasaGlobal = 0;
 
         function mostrarToast(mensaje, titulo = 'Notificación', tipo = 'info') {
             if (typeof window.mostrarToast === 'function') {
@@ -840,18 +851,33 @@
             const tipoNombre = gasto.tipo_gasto?.nombre || 'N/A';
             const claseViatico = gasto.es_viatico ? 'table-warning' : '';
 
+            // 🔴 USAR gasto_real SI EXISTE, si no usar monto
             const gastoReal = gasto.gasto_real ?? gasto.monto;
+
+            // La diferencia ahora se calcula contra el gasto_real
             const diferencia = gastoReal - gasto.monto;
             const claseDiferencia = diferencia > 0 ? 'text-success' : (diferencia < 0 ? 'text-danger' : 'text-muted');
             const iconoDiferencia = diferencia > 0 ? '▲' : (diferencia < 0 ? '▼' : '•');
 
+            // 🔴 CALCULAR EL MONTO REAL EN USD (para gastos en VES, se convierte)
+            let montoRealUSD = gasto.monto;
+            if (gasto.moneda_original === 'VES' && gasto.tasa_cambio > 0) {
+                const montoRealVES = gasto.gasto_real ?? gasto.monto_original;
+                montoRealUSD = montoRealVES / gasto.tasa_cambio;
+            } else if (gasto.moneda_original === 'VES') {
+                // Si no tiene tasa, usar el monto original como está
+                montoRealUSD = gasto.gasto_real ?? gasto.monto_original;
+            }
+
             const montoVES = gasto.moneda_original === 'VES' ? `Bs. ${parseFloat(gasto.monto_original).toFixed(2)}` : '—';
             const tasa = gasto.moneda_original === 'VES' && gasto.tasa_cambio ? gasto.tasa_cambio.toFixed(2) : '—';
 
-            // 🔴 Calcular equivalente en USD para mostrar en el tooltip
-            let equivalenteUSD = '';
+            // 🔴 Mostrar el gasto real en USD (para VES, mostrar el convertido)
+            let montoRealUSDText = '';
             if (gasto.moneda_original === 'VES' && gasto.tasa_cambio > 0) {
-                equivalenteUSD = `($${(gasto.monto_original / gasto.tasa_cambio).toFixed(2)} USD)`;
+                const montoRealVES = gasto.gasto_real ?? gasto.monto_original;
+                const equivalente = montoRealVES / gasto.tasa_cambio;
+                montoRealUSDText = `<br><small class="text-muted">equiv. $${equivalente.toFixed(2)} USD</small>`;
             }
 
             const tiposOptions = document.querySelector('#nuevo_tipo_gasto')?.innerHTML || '';
@@ -888,17 +914,19 @@
             <input type="number" class="form-control monto-ves-input" value="${gasto.moneda_original === 'VES' ? gasto.monto_original : ''}" step="0.01" min="0" style="display: none; width: 130px;">
         </td>
         <td class="text-center">
-            <input type="number"
-                   class="form-control form-control-sm gasto-real-input"
-                   data-id="${gasto.id}"
-                   value="${gastoReal.toFixed(2)}"
-                   step="0.01"
-                   min="0"
-                   style="width: 100px; display: inline-block;"
-                   onchange="actualizarGastoReal(${gasto.id}, this.value)"
-                   onfocus="this.select()"
-                   title="Monto realmente gastado">
-            ${equivalenteUSD ? `<br><small class="text-muted">${equivalenteUSD}</small>` : ''}
+            <div>
+                <input type="number"
+                       class="form-control form-control-sm gasto-real-input"
+                       data-id="${gasto.id}"
+                       value="${gastoReal.toFixed(2)}"
+                       step="0.01"
+                       min="0"
+                       style="width: 100px; display: inline-block;"
+                       onchange="actualizarGastoReal(${gasto.id}, this.value)"
+                       onfocus="this.select()"
+                       title="Monto realmente gastado">
+                ${montoRealUSDText}
+            </div>
         </td>
         <td class="text-center diferencia-cell" data-id="${gasto.id}">
             <span class="diferencia-text ${claseDiferencia}">
@@ -1150,61 +1178,71 @@
         // ========== ACTUALIZAR TOTALES ==========
 
         function actualizarTotalesGastos() {
-            let totalUSD = 0;
+            let totalUSDOriginal = 0;
+            let totalUSDReal = 0;  // 🔴 GASTO REAL EN USD
             let totalVES = 0;
-            let totalUSDEquivalente = 0; // 🔴 NUEVO: Total en USD equivalente (USD + VES convertido)
-            let totalGastoReal = 0;
+            let totalVESReal = 0;  // 🔴 GASTO REAL EN VES
+            let totalUSDEquivalente = 0; // USD + VES convertido usando gasto_real
+            let totalGastoRealUSD = 0;
 
             document.querySelectorAll('#tablaGastos tbody tr').forEach(row => {
                 const monedaOriginal = row.getAttribute('data-moneda-original');
                 const tasa = parseFloat(row.getAttribute('data-tasa')) || 0;
 
-                // Obtener monto en USD original (siempre existe)
+                // Obtener monto en USD original
                 const usdText = row.querySelector('.monto-usd-text')?.textContent || '$0';
                 const usdMatch = usdText.match(/[\d,]+\.\d+/);
                 const montoUSD = usdMatch ? parseFloat(usdMatch[0].replace(',', '')) || 0 : 0;
 
-                // Obtener monto en VES original (si aplica)
+                // Obtener monto en VES original
                 const vesText = row.querySelector('.monto-ves-text')?.textContent || '';
                 const vesMatch = vesText.match(/[\d,]+\.\d+/);
                 const montoVES = vesMatch ? parseFloat(vesMatch[0].replace(',', '')) || 0 : 0;
 
-                // Sumar USD directos
+                // Obtener el gasto real (si existe)
+                const gastoRealInput = row.querySelector('.gasto-real-input');
+                const gastoReal = gastoRealInput ? parseFloat(gastoRealInput.value) || 0 : 0;
+
+                // Sumar USD originales
                 if (monedaOriginal === 'USD') {
-                    totalUSD += montoUSD;
-                    totalUSDEquivalente += montoUSD; // Los USD ya están en USD
+                    totalUSDOriginal += montoUSD;
+                    // Si tiene gasto_real, sumarlo; si no, usar el monto original
+                    totalUSDReal += gastoReal > 0 ? gastoReal : montoUSD;
                 }
 
-                // Sumar VES y convertir a USD usando la tasa guardada
+                // Sumar VES originales
                 if (monedaOriginal === 'VES' && montoVES > 0) {
                     totalVES += montoVES;
-                    // Convertir VES a USD usando la tasa de cambio del gasto
+                    // 🔴 GASTO REAL EN VES (si tiene gasto_real, usarlo; si no, usar el monto original)
+                    const gastoRealVES = gastoReal > 0 ? gastoReal : montoVES;
+                    totalVESReal += gastoRealVES;
+
+                    // Convertir a USD usando la tasa
                     if (tasa > 0) {
-                        const equivalenteUSD = montoVES / tasa;
+                        const equivalenteUSD = gastoRealVES / tasa;
                         totalUSDEquivalente += equivalenteUSD;
                     } else {
-                        // Si no hay tasa, intentar obtener del campo de tasa
+                        // Si no hay tasa, intentar obtener del campo
                         const tasaText = row.querySelector('.tasa-text')?.textContent || '';
                         const tasaMatch = tasaText.match(/[\d,]+\.\d+/);
                         const tasaValor = tasaMatch ? parseFloat(tasaMatch[0].replace(',', '')) || 0 : 0;
                         if (tasaValor > 0) {
-                            const equivalenteUSD = montoVES / tasaValor;
+                            const equivalenteUSD = gastoRealVES / tasaValor;
                             totalUSDEquivalente += equivalenteUSD;
                         }
                     }
                 }
 
-                // Sumar Gasto Real (solo para gastos en USD, porque los VES ya están convertidos)
-                const gastoRealInput = row.querySelector('.gasto-real-input');
-                if (gastoRealInput) {
-                    const gastoReal = parseFloat(gastoRealInput.value) || 0;
-                    totalGastoReal += gastoReal;
+                // Si el gasto es en USD, el equivalente es el gasto_real o el monto
+                if (monedaOriginal === 'USD') {
+                    const gastoRealUSD = gastoReal > 0 ? gastoReal : montoUSD;
+                    totalUSDEquivalente += gastoRealUSD;
                 }
             });
 
             // Actualizar totales en el footer
             const totalUSDElement = document.getElementById('totalUSD');
-            if (totalUSDElement) totalUSDElement.textContent = `$${totalUSD.toFixed(2)}`;
+            if (totalUSDElement) totalUSDElement.textContent = `$${totalUSDOriginal.toFixed(2)}`;
 
             const totalVESElement = document.getElementById('totalVES');
             if (totalVESElement) {
@@ -1215,15 +1253,14 @@
                 }
             }
 
-            // 🔴 NUEVO: Mostrar el total equivalente en USD (USD + VES convertido)
+            // 🔴 MOSTRAR EL TOTAL GASTADO REAL EN USD (USD real + VES real convertido)
             const totalGastoRealElement = document.getElementById('totalGastoReal');
             if (totalGastoRealElement) {
-                // Si hay gastos en VES, mostrar el total convertido
                 if (totalVES > 0) {
                     totalGastoRealElement.innerHTML = `
                 <div>
                     <strong>$${totalUSDEquivalente.toFixed(2)}</strong>
-                    <br><small class="text-muted">(USD $${totalUSD.toFixed(2)} + VES convertido)</small>
+                    <br><small class="text-muted">(USD $${totalUSDReal.toFixed(2)} + VES convertido)</small>
                 </div>
             `;
                 } else {
@@ -1231,8 +1268,9 @@
                 }
             }
 
-            // Calcular diferencia total (Gasto Real vs Total en USD)
-            const totalDiferencia = totalGastoReal - totalUSDEquivalente;
+            // Calcular diferencia total (Gasto Real vs Total original)
+            const totalOriginal = totalUSDOriginal + (totalVES / (tasaGlobal || 1));
+            const totalDiferencia = totalUSDEquivalente - totalOriginal;
             const totalDiferenciaElement = document.getElementById('totalDiferencia');
             if (totalDiferenciaElement) {
                 const clase = totalDiferencia > 0 ? 'text-success' : (totalDiferencia < 0 ? 'text-danger' : 'text-muted');
@@ -1247,11 +1285,11 @@
             // 🔴 ACTUALIZAR EL CAMPO DE TOTAL GASTADO EN LA SECCIÓN DE VIÁTICOS
             const totalGastadoUSDElement = document.getElementById('total_gastado_usd');
             if (totalGastadoUSDElement) {
-                // Mostrar el total equivalente en USD (USD + VES convertido)
+                // Mostrar el total equivalente en USD (USD real + VES convertido)
                 totalGastadoUSDElement.value = totalUSDEquivalente.toFixed(2);
             }
 
-            // Actualizar total VES (sin cambios)
+            // Actualizar total VES original
             const totalGastadoVESElement = document.getElementById('total_gastado_ves');
             if (totalGastadoVESElement) {
                 totalGastadoVESElement.value = totalVES.toFixed(2);

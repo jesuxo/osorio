@@ -6,6 +6,7 @@ use App\Models\Sacomp;
 use App\Models\Safact;
 use App\Models\Saitemcom;
 use App\Models\Saprod;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use App\Models\Saprodsucursal;
 use App\Models\Saseprcom;
@@ -41,6 +42,24 @@ class SacompController extends Controller
                         }
 
                         $aux = (array) $com;
+
+                        if (isset($aux['fechav'])) {
+                            $aux['fechav'] = $this->validateAndFixDate($aux['fechav']);
+                        } else {
+                            $aux['fechav'] = now()->format('Y-m-d H:i:s');
+                        }
+
+                        // También validar otras fechas si es necesario
+                        if (isset($aux['fechat'])) {
+                            $aux['fechat'] = $this->validateAndFixDate($aux['fechat']);
+                        }
+                        if (isset($aux['fechai'])) {
+                            $aux['fechai'] = $this->validateAndFixDate($aux['fechai']);
+                        }
+                        if (isset($aux['fechae'])) {
+                            $aux['fechae'] = $this->validateAndFixDate($aux['fechae']);
+                        }
+
                         $record->fill($aux) ;
                         $record->fk_sucursal = $sucursalid ;
 
@@ -115,6 +134,61 @@ class SacompController extends Controller
             }
 
         return response()->json(['success' => 'success', 'updated' => 1], 200);
+    }
+
+    private function validateAndFixDate($date)
+    {
+        // Si está vacío o es null, retornar fecha actual
+        if (empty($date)) {
+            return now()->format('Y-m-d H:i:s');
+        }
+
+        // Intentar parsear la fecha con Carbon
+        try {
+            // Si es un timestamp UNIX
+            if (is_numeric($date)) {
+                return Carbon::createFromTimestamp($date)->format('Y-m-d H:i:s');
+            }
+
+            // Si es un string, intentar diferentes formatos
+            $formats = [
+                'Y-m-d H:i:s',
+                'Y-m-d H:i',
+                'Y-m-d',
+                'd/m/Y H:i:s',
+                'd/m/Y H:i',
+                'd/m/Y',
+                'm/d/Y H:i:s',
+                'm/d/Y H:i',
+                'm/d/Y',
+                'd-m-Y H:i:s',
+                'd-m-Y H:i',
+                'd-m-Y',
+            ];
+
+            foreach ($formats as $format) {
+                try {
+                    $parsed = Carbon::createFromFormat($format, $date);
+                    if ($parsed !== false) {
+                        return $parsed->format('Y-m-d H:i:s');
+                    }
+                } catch (\Exception $e) {
+                    continue;
+                }
+            }
+
+            // Si llegamos aquí, intentar con parse (más flexible)
+            try {
+                $parsed = Carbon::parse($date);
+                return $parsed->format('Y-m-d H:i:s');
+            } catch (\Exception $e) {
+                // Si todo falla, usar fecha actual
+                return now()->format('Y-m-d H:i:s');
+            }
+
+        } catch (\Exception $e) {
+            return now()->format('Y-m-d H:i:s');
+        }
     }
 
     public function reportecompra(Request $request)

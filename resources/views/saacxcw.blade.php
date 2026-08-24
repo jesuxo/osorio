@@ -288,7 +288,7 @@
                                 @endphp
                                 <tr>
                                     <td>
-                                        <a href="{{route('saacxcw',['id'=>$sucu->id, 'fechasreport'=>$fechasreport])}}"
+                                        <a href="{{route('saacxcw',['id'=>$sucu->id, 'fechasreport'=>$fechasreport,'codoper'=>$filtroCodoper])}}"
                                            class="sucursal-link text-dark" style="font-size: 12px">
                                             <i class="bi bi-shop me-1"></i>{{ str_replace("SARA","",$sucu->descrip) }}
                                         </a>

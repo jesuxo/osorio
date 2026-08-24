@@ -500,6 +500,7 @@
                                                     data-fecha1="{{ $fecha1 ?? '' }}"
                                                     data-fecha2="{{ $fecha2 ?? '' }}"
                                                     data-cliente="{{ $cxc->cliente }}"
+                                                    data-codoper="{{ $filtroCodoper }}"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#cxcmodal">
                                                 <i class="bi bi-list-ul me-1"></i> Ver
@@ -989,6 +990,7 @@
             var fecha1 = $(this).data('fecha1');
             var fecha2 = $(this).data('fecha2');
             var cliente = $(this).data('cliente');
+            var codoper = $(this).data('codoper');
 
 
             codclieActual = codclie;
@@ -1010,7 +1012,11 @@
 
             $.ajax({
                 type: 'post',
-                data:{codclie: (codclie)? codclie : '',fecha1: (fecha1)? fecha1 : '',fecha2: (fecha2)? fecha2 : '' },
+                data:{codclie : (codclie)? codclie : '',
+                      fecha1  : (fecha1 )? fecha1  : '',
+                      fecha2  : (fecha2 )? fecha2  : '',
+                      codoper : (codoper)? codoper : ''
+                },
                 url: '/cxclist',
                 headers: {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')

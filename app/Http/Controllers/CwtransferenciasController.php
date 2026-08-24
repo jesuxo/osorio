@@ -417,6 +417,9 @@ class CwtransferenciasController extends Controller
     public function reportetransferencias(Request $request)
     {
         $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
+        if(!isset($arraysucursales) or count($arraysucursales) < 1){}
+            return response()->redirectTo('/');
+
         $arraysucursales = implode(",",$arraysucursales);
 
         $comercialid = session('comercialid');

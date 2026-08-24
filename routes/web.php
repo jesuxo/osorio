@@ -574,8 +574,13 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::controller(SaacxcwController::class)->group(callback: function () {
-        Route::match(['get','post'],'cxc/{id?}', 'saacxcw');
+        Route::match(['get','post'],'cxc/{id?}', 'saacxcw')->name('saacxcw');
         Route::post('/cxclist', 'cxclist');
+    });
+
+    Route::prefix('cxcweb')->name('cxcweb.')->group(function () {
+        Route::get('/instrumentos', [SaacxcwController::class, 'getInstrumentosPago'])->name('instrumentos');
+        Route::post('/procesar-pago-web', [SaacxcwController::class, 'procesarPagoWeb'])->name('procesar.pago.web');
     });
 
     Route::controller(CwcuentasController::class)->group(function () {

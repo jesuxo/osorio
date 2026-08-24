@@ -73,7 +73,7 @@ class Saprod extends Model
     {
         // Si tienes un campo para imagen en la BD, úsalo
         if (isset($this->imagen) && $this->imagen) {
-            return asset('storage/productos/' . $this->imagen);
+            return asset('uploads/productos/' . $this->imagen);
         }
         // Placeholder por defecto
         return asset('build/images/noimagen.jpg');

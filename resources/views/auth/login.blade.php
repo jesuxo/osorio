@@ -982,15 +982,15 @@
         </div>
     </div>
 
-    <div id="app-chat-container" class="pusher-container pusher-mobile   "  >
-        <div id="app-bot-bot" data-fromtype="bot" data-fromid="bot" data-idconversation="null" data-id-question="1" data-id-flow="null" data-id-categ="null" data-id-sector="null" class="app-chat-container-top">
-            <div class="chat-launcher app-chat-launcher" onclick="activechat()"  style="display: block;"> <!--  -->
+    <!--  <div id="app-chat-container" class="pusher-container pusher-mobile   "  >
+         <div id="app-bot-bot" data-fromtype="bot" data-fromid="bot" data-idconversation="null" data-id-question="1" data-id-flow="null" data-id-categ="null" data-id-sector="null" class="app-chat-container-top">
+             <div class="chat-launcher app-chat-launcher" onclick="activechat()"  style="display: block;">
                 <div class="chat-launcher-button">
                     <img class="app-chat-avatar" src="/images/avatar.png" width="50" height="50" alt="">
                     <span class="app-chat-num-messages chat-message-count dnone bounce-once" style="display: none"></span>
                 </div>
                 <div class="chat-launcher-preview " style="display: none" >
-                    <!---->
+
                     <div class="app-conversation-summary  firstmessage">
                         ¿Tienes preguntas sobre nuestra empresa o productos? ¡Estoy para apoyarte!
                     </div>
@@ -1060,7 +1060,7 @@
             </div>
         </div>
     </div>
-
+-->
     <!-- Script para funcionalidades -->
     <script>
         // Toggle password visibility
@@ -1223,7 +1223,7 @@
 @section('scripts')
 
     <script>
-        const chatMessages = document.getElementById('chatMessages');
+       /* const chatMessages = document.getElementById('chatMessages');
         const messageInput = document.getElementById('message');
         const sendButton = document.getElementById('sendButton');
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
@@ -1232,10 +1232,10 @@
         var firstmessage = 0;
         let conversationId = null;
         let isChatInitialized = false;
-
+*/
         // Inicializar el chat al cargar la página
-        $(document).ready(function() {
-            initializeChat();
+       /* $(document).ready(function() {
+           // initializeChat();
             $('.chat-launcher-preview').show();
 
             // Enter para enviar mensaje
@@ -1245,18 +1245,18 @@
                     sendMessage();
                 }
             });
-        });
+        });*/
 
-        function activechat() {
+      /*  function activechat() {
             $('.app-chat-conversation').addClass('active');
             $('.chat-launcher-preview').hide();
             setTimeout(() => {
                 $('#message').focus();
                 scrollToBottom();
             }, 300);
-        }
+        }*/
 
-        async function initializeChat() {
+        /*async function initializeChat() {
             if (isChatInitialized) return;
 
             try {
@@ -1319,9 +1319,9 @@
                 // Mostrar un mensaje de error en el chat
                 addMessage('Error al conectar con el servidor. Por favor, recarga la página.', 'bot error-message');
             }
-        }
+        }*/
 
-        async function sendMessage() {
+      /*  async function sendMessage() {
             const message = messageInput.value.trim();
 
             if (!message || isLoading) return;
@@ -1385,10 +1385,10 @@
             } finally {
                 setLoading(false);
             }
-        }
+        }*/
 
         // Nueva función para mostrar productos de forma estructurada
-        function showProductsResponse(data) {
+     /*   function showProductsResponse(data) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'chat-message message-income product-message';
 
@@ -1433,9 +1433,9 @@
             chatMessages.appendChild(messageDiv);
             scrollToBottom();
             updateMessageCounter();
-        }
+        }*/
 
-        function addMessage(text, type, timestamp = null) {
+        /*function addMessage(text, type, timestamp = null) {
             const messageDiv = document.createElement('div');
 
             // Convertir URLs en links
@@ -1480,9 +1480,9 @@
             chatMessages.appendChild(messageDiv);
             scrollToBottom();
             updateMessageCounter();
-        }
+        }*/
 
-        function showTypingIndicator() {
+       /* function showTypingIndicator() {
             const typingDiv = document.createElement('div');
             typingDiv.className = 'chat-message message-income typing-indicator';
             typingDiv.id = 'typing-' + Date.now();
@@ -1497,23 +1497,23 @@
             chatMessages.appendChild(typingDiv);
             scrollToBottom();
             return typingDiv.id;
-        }
+        }*/
 
-        function removeTypingIndicator(id) {
+      /*  function removeTypingIndicator(id) {
             const typingDiv = document.getElementById(id);
             if (typingDiv) {
                 typingDiv.remove();
             }
-        }
+        }*/
 
-        function scrollToBottom() {
+       /* function scrollToBottom() {
             const containers = document.querySelectorAll('.app-conversation-parts.chat-messages__inner, .app-chat-conversations.chat-messages');
             containers.forEach(container => {
                 container.scrollTop = container.scrollHeight;
             });
-        }
+        }*/
 
-        function setLoading(loading) {
+        /*function setLoading(loading) {
             isLoading = loading;
             messageInput.disabled = loading;
             sendButton.disabled = loading;
@@ -1526,14 +1526,14 @@
                     $('#message').focus().select();
                 }, 100);
             }
-        }
+        }*/
 
-        function updateMessageCounter() {
+       /* function updateMessageCounter() {
             var counterEl = $('.bounce-once');
             var currentCount = parseInt(counterEl.html() || 0);
             counterEl.html(currentCount + 1);
             counterEl.show();
-        }
+        }*/
 
         // Agregar estilos para productos
         const productStyles = document.createElement('style');
@@ -1618,6 +1618,6 @@
             display: block !important;
         }
     `;
-        document.head.appendChild(productStyles);
+       // document.head.appendChild(productStyles);
     </script>
 @endsection

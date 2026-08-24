@@ -210,26 +210,49 @@
             </div>
         @endif
 
+        @if(Auth::user() and auth()->user()->can('menu_cxc')  )
         <div class="col-xl-3 col-md-6">
-            <div class="card dashboard-card ">
+            <div class="card dashboard-card">
                 <div class="card-body">
                     <div class="d-flex align-items-start justify-content-between">
                         <div>
-                            <div class="stat-label">Modulo de transporte</div>
-                            <a href="/viajes" class="stretched-link text-decoration-none">
+                            <div class="stat-label">Cuentas x Cobrar</div>
+                            <a href="/cxc" class="stretched-link text-decoration-none">
                                 <div class="mt-3 text-muted small">
-                                    Ver reporte de viajes <i class="ri-arrow-right-line"></i>
+                                    Ver reporte cxc <i class="ri-arrow-right-line"></i>
                                 </div>
                             </a>
                         </div>
-                        <div class="card-icon-wrapper bg-soft-danger">
-                            <i class="bi bi-truck fs-3 text-danger"></i>
+                        <div class="card-icon-wrapper bg-soft-warning">
+                            <i class="ph-currency-dollar-bold fs-3 text-warning"></i>
                         </div>
                     </div>
 
                 </div>
             </div>
         </div>
+        @else
+            <div class="col-xl-3 col-md-6">
+                <div class="card dashboard-card ">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start justify-content-between">
+                            <div>
+                                <div class="stat-label">Modulo de transporte</div>
+                                <a href="/viajes" class="stretched-link text-decoration-none">
+                                    <div class="mt-3 text-muted small">
+                                        Ver reporte de viajes <i class="ri-arrow-right-line"></i>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="card-icon-wrapper bg-soft-danger">
+                                <i class="bi bi-truck fs-3 text-danger"></i>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        @endif
     </div>
 
     <div class="row g-4  ">

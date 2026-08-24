@@ -1460,7 +1460,7 @@
 
             $.ajax({
                 type: 'POST',
-                data: { tipofac: tipofac || 'A', numerod: numerod, fksucu: fksucu || '' },
+                data: { tipofac: tipofac || 'Z', numerod: numerod, fksucu: fksucu || '' },
                 url: '/openDoc',
                 headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
                 success: function(response) {

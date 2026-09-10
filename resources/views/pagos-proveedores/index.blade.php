@@ -679,7 +679,7 @@
                                 numero_factura: f.numero_factura || '',
                                 fecha_factura: f.fecha_factura || '',
                                 cantidad_facturada: parseInt(f.cantidad_facturada) || 0,
-                                monto_facturado: parseFloat(f.monto_facturado) || 0, // ← Asegurar que es número
+                                monto_facturado: parseFloat(f.monto_facturado) || 0,
                                 archivo_path: f.archivo_path || null
                             })),
                             precio_unitario: parseFloat(p.precio_unitario) || 0,
@@ -687,7 +687,13 @@
                             id: parseInt(p.id) || 0
                         }));
 
+                        // NUEVO: Guardar IDs originales para detectar eliminados
+                        window.productosOriginalesIds = data.productos
+                            .map(p => parseInt(p.id) || 0)
+                            .filter(id => id > 0);
+
                         console.log('Productos cargados:', productosTemporales);
+                        console.log('IDs originales:', window.productosOriginalesIds);
 
                         window.modoEdicion = true;
                         window.pagoEditandoId = id;
@@ -1901,6 +1907,10 @@
         // Limpiar al cerrar el modal
         $('#modalPago').on('hidden.bs.modal', function () {
             productosTemporales = [];
+            window.productosOriginalesIds = [];  // NUEVO: limpiar IDs originales
+            window.modoEdicion = false;          // NUEVO: limpiar modo edición
+            window.pagoEditandoId = null;        // NUEVO: limpiar pago editando
+            window.productoEditIndex = undefined; // NUEVO: limpiar índice de edición
             $('#formCrearPago')[0]?.reset();
             $('#seccionProductos').hide();
             $('#btnGuardarPago').prop('disabled', true);

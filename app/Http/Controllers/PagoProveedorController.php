@@ -317,24 +317,55 @@ class PagoProveedorController extends Controller
             'productos_actualizar' => 'nullable|array',
             'productos_actualizar.*.id' => 'exists:pagos_proveedores_detalles,id',
             'productos_actualizar.*.cantidad' => 'integer|min:1',
-            'productos_actualizar.*.cantidad_facturada' => 'integer|min:0', // ← Se mantiene
+            'productos_actualizar.*.cantidad_facturada' => 'integer|min:0',
             'productos_actualizar.*.precio_unitario' => 'numeric|min:0',
             'productos_nuevos' => 'nullable|array',
             'productos_nuevos.*.producto_id' => 'exists:saprod,id',
             'productos_nuevos.*.cantidad' => 'integer|min:1',
-            'productos_nuevos.*.cantidad_facturada' => 'integer|min:0', // ← Se mantiene
+            'productos_nuevos.*.cantidad_facturada' => 'integer|min:0',
             'productos_nuevos.*.precio_unitario' => 'numeric|min:0',
+            'productos_eliminar' => 'nullable|array',                          // NUEVO
+            'productos_eliminar.*' => 'exists:pagos_proveedores_detalles,id',  // NUEVO
         ]);
 
         DB::beginTransaction();
 
         try {
+            // ============ NUEVO: ELIMINAR PRODUCTOS QUE YA NO ESTÁN ============
+            if ($request->has('productos_eliminar') && is_array($request->productos_eliminar)) {
+                foreach ($request->productos_eliminar as $detalleId) {
+                    $detalle = PagoProveedorDetalle::find($detalleId);
+
+                    if ($detalle && $detalle->pago_id == $pago->id) {
+                        // Validar que no tenga unidades recibidas
+                        if ($detalle->cantidad_recibida > 0) {
+                            throw new \Exception("No se puede eliminar el producto '{$detalle->producto_descrip}' porque ya tiene {$detalle->cantidad_recibida} unidades recibidas");
+                        }
+
+                        // Eliminar facturas asociadas y sus archivos físicos
+                        foreach ($detalle->facturas as $factura) {
+                            if ($factura->archivo_path) {
+                                $rutaArchivo = public_path($factura->archivo_path);
+                                if (file_exists($rutaArchivo)) {
+                                    unlink($rutaArchivo);
+                                }
+                            }
+                            $factura->delete();
+                        }
+
+                        // Eliminar el detalle
+                        $detalle->delete();
+                    }
+                }
+            }
+            // ============ FIN NUEVO ============
+
             // Actualizar productos existentes
-            foreach ($request->productos_actualizar as $producto) {
+            foreach ($request->productos_actualizar ?? [] as $producto) {
                 $detalle = PagoProveedorDetalle::find($producto['id']);
                 if ($detalle && $detalle->pago_id == $pago->id) {
                     $detalle->cantidad = $producto['cantidad'];
-                    $detalle->cantidad_facturada = $producto['cantidad_facturada'] ?? 0; // ← Se mantiene
+                    $detalle->cantidad_facturada = $producto['cantidad_facturada'] ?? 0;
                     $detalle->precio_unitario = $producto['precio_unitario'];
                     $detalle->subtotal = $producto['cantidad'] * $producto['precio_unitario'];
                     $detalle->save();
@@ -342,7 +373,7 @@ class PagoProveedorController extends Controller
             }
 
             // Crear nuevos productos
-            foreach ($request->productos_nuevos as $producto) {
+            foreach ($request->productos_nuevos ?? [] as $producto) {
                 $prod = Saprod::where('codprod', $producto['producto_codprod'])
                     ->where('comercial', 1)
                     ->first();
@@ -354,7 +385,7 @@ class PagoProveedorController extends Controller
                     'producto_descrip'   => $producto['producto_descrip'],
                     'cantidad'           => $producto['cantidad'],
                     'cantidad_recibida'  => 0,
-                    'cantidad_facturada' => $producto['cantidad_facturada'] ?? 0, // ← Se mantiene
+                    'cantidad_facturada' => $producto['cantidad_facturada'] ?? 0,
                     'precio_unitario'    => $producto['precio_unitario'],
                     'subtotal'           => $producto['cantidad'] * $producto['precio_unitario']
                 ]);

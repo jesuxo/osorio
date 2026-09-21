@@ -1402,6 +1402,18 @@
                 precio_unitario: p.precio_unitario
             }));
 
+            // NUEVO: calcular IDs que estaban originalmente y ya no están en productosTemporales
+            const idsActuales = productosTemporales
+                .filter(p => p.id)
+                .map(p => parseInt(p.id));
+
+            const productosEliminar = (window.productosOriginalesIds || [])
+                .filter(id => !idsActuales.includes(id));
+
+            console.log('Productos a actualizar:', productosActualizar);
+            console.log('Productos nuevos:', productosNuevos);
+            console.log('Productos a eliminar:', productosEliminar);
+
             fetch(`/pagos-proveedores/${pagoId}/productos`, {
                 method: 'PUT',
                 headers: {
@@ -1411,7 +1423,8 @@
                 },
                 body: JSON.stringify({
                     productos_actualizar: productosActualizar,
-                    productos_nuevos: productosNuevos
+                    productos_nuevos: productosNuevos,
+                    productos_eliminar: productosEliminar
                 })
             })
                 .then(response => response.json())

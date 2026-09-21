@@ -887,13 +887,14 @@ class PagoProveedorController extends Controller
 
         foreach ($pagos as $pago) {
             $totalComprobantes = $pago->comprobantes->sum('monto');
-            $diferencia = $pago->monto_total - $totalComprobantes;
+            //$diferencia = $pago->monto_total - $totalComprobantes;
+            $diferencia = number_format($pago->monto_total - $totalComprobantes,2,'.','');
 
             // Verificar si el pedido está pagado (comprobantes cubren el monto total)
-            $estaPagado = $totalComprobantes >= $pago->monto_total;
+            $estaPagado = number_format($totalComprobantes,2,'.','') >= number_format($pago->monto_total,2,'.',''); ;
 
             // Verificar si aún tiene motos pendientes por recibir
-            $tieneMotosPendientes = $pago->total_pendiente > 0;
+            $tieneMotosPendientes = number_format($pago->total_pendiente,2,'.','') > 0;
 
             // Filtrar según el tipo solicitado
             $incluir = false;

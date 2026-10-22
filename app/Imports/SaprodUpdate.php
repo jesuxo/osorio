@@ -39,7 +39,7 @@ class SaprodUpdate implements ToCollection, WithHeadingRow
                 $prodsucursal = Saprodsucursal::with('producto')->where('codprod', $row['codprod'])->get();
                 if($prodsucursal)
                     foreach ($prodsucursal as $item){
-                        if($item->producto->comercial == $comercial)
+                        if(isset($item->producto->comercial) and $item->producto->comercial == $comercial)
                             $item->delete();
                     }
 

@@ -15,6 +15,7 @@ class Saprodsucursal extends Model
     }
 
     public function producto(){
-        return $this->belongsTo(Saprod::class, 'codprod', 'codprod');
+        $comercial = session('comercialid') ;
+        return $this->belongsTo(Saprod::class, 'codprod', 'codprod')->where('comercial',$comercial);
     }
 }

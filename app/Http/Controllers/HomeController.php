@@ -340,140 +340,301 @@ class HomeController extends Controller
     public function reportemotos(Request $request)
     {
         $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
-        $arraysucursales = implode(",",$arraysucursales);
+        $arraysucursales = implode(",", $arraysucursales);
 
-        $inspadre = (isset($request->inspadre) and $request->inspadre >0) ? $request->inspadre: 0;
+        $inspadre = ($request->inspadre > 0) ? $request->inspadre : 0;
         $codalte  = '01.';
 
-        if($inspadre>0){
-            $instanciapadre = Sainsta::where('codinst',$inspadre)->first();
-            if($instanciapadre){ $codalte = $instanciapadre->codalte; }
+        if ($inspadre > 0) {
+            $instanciapadre = Sainsta::where('codinst', $inspadre)->first();
+            if ($instanciapadre) $codalte = $instanciapadre->codalte;
         }
 
-        $comercialid = session('comercialid');
-        if(!$comercialid) {
+        $comercialid = session('comercialid') ?: 1;
+        if (!$comercialid) {
             session(['comercialid' => 1]);
             $comercialid = 1;
         }
 
+        // ============================================================
+        // PARSEO DE FECHAS
+        // ============================================================
         $fechasreport = $request->fechasreport;
-        $fechashoy    =  Carbon::now()->format('d/m/Y');
+        $fechashoy    = Carbon::now()->format('d/m/Y');
         $nofilterdate = 0;
-        if(!$fechasreport) {
+
+        if (!$fechasreport) {
             $nofilterdate = 1;
             $fechasreport = $fechashoy;
         }
 
-        $fechasaux = str_replace(' ','',$fechasreport);
+        $fechasaux = str_replace(' ', '', $fechasreport);
         $fec1 = $fec2 = '';
 
-        if(strpos($fechasaux,"to"))
-            list($fec1, $fec2) = explode("to",$fechasaux);
-        else {
-            if(!$nofilterdate) {
-                list($d1, $m1, $y1) = explode("/", $fechasreport);
-                $fec1 = "$d1/$m1/$y1";
-                $fec2 = $fec1;
-                $fechasreport = "$fec1 to $fec2";
-            }else{
-                list($d1, $m1, $y1) = explode("/", $fechasreport);
-                $fec1 = "$d1/$m1/$y1";
-                $fec2 = "$d1/$m1/$y1";
-                $fechasreport = "$fec1 to $fec2";
-            }
+        if (strpos($fechasaux, "to")) {
+            list($fec1, $fec2) = explode("to", $fechasaux);
+        } else {
+            list($d1, $m1, $y1) = explode("/", $fechasreport);
+            $fec1 = "$d1/$m1/$y1";
+            $fec2 = $fec1;
+            $fechasreport = "$fec1 to $fec2";
         }
+
+        list($d1, $m1, $y1) = explode("/", $fec1);
+        list($d2, $m2, $y2) = explode("/", $fec2);
 
         $fecha1 = $fec1;
         $fecha2 = $fec2;
 
-        list($d1,$m1,$y1) = explode("/",$fec1);
-        list($d2,$m2,$y2) = explode("/",$fec2);
+        $fec1_db = "$y1-$m1-$d1";
+        $fec2_db = "$y2-$m2-$d2";
 
-        $fec1 = "$y1-$m1-$d1";
-        $fec2 = "$y2-$m2-$d2";
+        // ============================================================
+        // NAVEGACIÓN: ANTERIOR / SIGUIENTE
+        // ============================================================
+        $fechaDesde = Carbon::createFromFormat('Y-m-d', $fec1_db);
+        $fechaHasta = Carbon::createFromFormat('Y-m-d', $fec2_db);
+        $diasRango  = $fechaDesde->diffInDays($fechaHasta) + 1;
 
+        $rangoAnterior = [
+            $fechaDesde->copy()->subDays($diasRango)->format('d/m/Y'),
+            $fechaHasta->copy()->subDays($diasRango)->format('d/m/Y'),
+        ];
+        $rangoSiguiente = [
+            $fechaDesde->copy()->addDays($diasRango)->format('d/m/Y'),
+            $fechaHasta->copy()->addDays($diasRango)->format('d/m/Y'),
+        ];
+
+        $puedeAnterior = true; // siempre permitir
+        $puedeSiguiente = $fechaHasta->copy()->addDays($diasRango)->lte(Carbon::today());
+
+        // Query string para navegación (mantiene filtros)
+        $qsNav = function($desde, $hasta) use ($inspadre) {
+            return http_build_query([
+                'fechasreport' => "$desde to $hasta",
+                'inspadre'     => $inspadre,
+            ]);
+        };
+
+        // ============================================================
+        // CONSULTA PRINCIPAL (período actual)
+        // ============================================================
         $items = Saitemfac::query()
             ->whereIn('TipoFac', ['Z', 'W'])
             ->where('esserv', 0)
             ->whereRaw("fk_sucursal in ($arraysucursales)")
-            ->whereBetween('FechaE', ["{$fec1} 00:00:00.00", "{$fec2} 23:59:59.00"])
+            ->whereBetween('FechaE', ["{$fec1_db} 00:00:00.00", "{$fec2_db} 23:59:59.00"])
             ->whereHas('sucursal.comercial', fn($q) => $q->where('fk_comercial', $comercialid))
             ->whereHas('producto.instancia', fn($q) => $q->where('codalte', 'LIKE', "{$codalte}%"))
             ->selectRaw("CodItem, sum(costod * Signo) as costod, sum(Cantidad * Signo) as salidas, fk_sucursal, NumeroD, TipoFac")
             ->groupBy(['CodItem', 'fk_sucursal', 'NumeroD', 'TipoFac'])
             ->orderByDesc('salidas')
             ->with([
-                'factura' => function($q) {
-                    $q->with(['cliente' => function($q) {
-                        $q->select(['CodClie', 'descrip']); // Añade los campos que necesites
-                    }]);
-                },
+                'factura' => fn($q) => $q->with([
+                    'cliente' => fn($q2) => $q2->select(['CodClie', 'descrip']),
+                ]),
                 'factura.sucursal.comercial',
                 'producto' => fn($q) => $q->select(['codprod', 'descrip', 'codinst']),
                 'producto.instancia.padre',
-                'sucursal'
+                'sucursal',
             ])
             ->get();
 
-        $ventaProductos = [];
-        $ventaSucursal  = [];
+        $ventaProductos        = [];
+        $ventaSucursal         = [];
         $ventaSucursalClientes = [];
-        $ventaSucuProd  = [];
-        $productos      = [];
-        $instancias     = [];
-        $sucursales     = [];
-        $ventaInstancia = [];
-        $instanciaspadre= [];
-        $ventainspadre  = [];
-        $ventainsprodsucu= [];
+        $ventaSucuProd         = [];
+        $productos             = [];
+        $instancias            = [];
+        $sucursales            = [];
+        $ventaInstancia        = [];
+        $instanciaspadre       = [];
+        $ventainspadre         = [];
+        $ventainsprodsucu      = [];
 
-        foreach ($items as $prod){
+        // === GERENCIALES ===
+        $totalMonto            = 0;
+        $totalUnidades         = 0;
+        $clienteTotales        = []; // codclie => [nombre, unidades, monto, docs[]]
+        $porDiaTotales         = []; // 'Y-m-d' => unidades
+        $facturasUnicas        = [];
+        $ticketPromedio        = 0;
 
-           /* if(!isset($prod->producto->instancia->padre->codinst))
-                dd($prod->producto);*/
-            if(!isset($instanciaspadre[$prod->producto->instancia->padre->codinst])) $instanciaspadre[$prod->producto->instancia->padre->codinst] = $prod->producto->instancia->padre->descrip;
-            if(!isset($ventainspadre[$prod->producto->instancia->padre->codinst])) $ventainspadre[$prod->producto->instancia->padre->codinst] = 0;
-            if(!isset($ventainsprodsucu[$prod->producto->codinst][$prod->fk_sucursal])) $ventainsprodsucu[$prod->producto->codinst][$prod->fk_sucursal] = 0;
-
-            if(!isset($instancias[$prod->producto->codinst]))     $instancias[$prod->producto->codinst] = $prod->producto->instancia->descrip;
-            if(!isset($ventaInstancia[$prod->producto->codinst])) $ventaInstancia[$prod->producto->codinst] = 0;
-
-            if(!isset($productos[$prod->CodItem]))        $productos[$prod->CodItem] = $prod->producto->descrip;
-            if(!isset($ventaProductos[$prod->CodItem]))   $ventaProductos[$prod->CodItem] = 0;
-
-            if(!isset($sucursales[$prod->fk_sucursal]))   $sucursales[$prod->fk_sucursal] = $prod->sucursal->descrip;
-            if(!isset($ventaSucursal[$prod->fk_sucursal]))$ventaSucursal[$prod->fk_sucursal] = 0;
-
-            if(!isset($ventaSucuProd[$prod->CodItem][$prod->fk_sucursal]))$ventaSucuProd[$prod->CodItem][$prod->fk_sucursal] = 0;
+        foreach ($items as $prod) {
+            // Acumuladores base
+            if (!isset($instanciaspadre[$prod->producto->instancia->padre->codinst])) $instanciaspadre[$prod->producto->instancia->padre->codinst] = $prod->producto->instancia->padre->descrip;
+            if (!isset($ventainspadre[$prod->producto->instancia->padre->codinst]))     $ventainspadre[$prod->producto->instancia->padre->codinst] = 0;
+            if (!isset($ventainsprodsucu[$prod->producto->codinst][$prod->fk_sucursal]))$ventainsprodsucu[$prod->producto->codinst][$prod->fk_sucursal] = 0;
+            if (!isset($instancias[$prod->producto->codinst]))                          $instancias[$prod->producto->codinst] = $prod->producto->instancia->descrip;
+            if (!isset($ventaInstancia[$prod->producto->codinst]))                      $ventaInstancia[$prod->producto->codinst] = 0;
+            if (!isset($productos[$prod->CodItem]))                                     $productos[$prod->CodItem] = $prod->producto->descrip;
+            if (!isset($ventaProductos[$prod->CodItem]))                                $ventaProductos[$prod->CodItem] = 0;
+            if (!isset($sucursales[$prod->fk_sucursal]))                                $sucursales[$prod->fk_sucursal] = $prod->sucursal->descrip;
+            if (!isset($ventaSucursal[$prod->fk_sucursal]))                             $ventaSucursal[$prod->fk_sucursal] = 0;
+            if (!isset($ventaSucuProd[$prod->CodItem][$prod->fk_sucursal]))             $ventaSucuProd[$prod->CodItem][$prod->fk_sucursal] = 0;
 
             $ventaProductos[$prod->CodItem]           += $prod->salidas;
             $ventaSucursal[$prod->fk_sucursal]        += $prod->salidas;
             $ventaInstancia[$prod->producto->codinst] += $prod->salidas;
 
-            if(!isset($prod->factura->CodClie)){
-                dd($prod);
+            // === GERENCIALES ===
+            $totalUnidades += $prod->salidas;
+            $totalMonto    += $prod->costod;
+
+            $fechaDia = Carbon::parse($prod->factura->FechaE ?? now())->format('Y-m-d');
+            if (!isset($porDiaTotales[$fechaDia])) $porDiaTotales[$fechaDia] = 0;
+            $porDiaTotales[$fechaDia] += $prod->salidas;
+
+            $facturaKey = $prod->fk_sucursal . '-' . $prod->TipoFac . '-' . $prod->NumeroD;
+            $facturasUnicas[$facturaKey] = true;
+
+            // Detalle por cliente (para modal)
+            if (!isset($prod->factura->CodClie)) continue;
+
+            $indicecheck = $prod->factura->CodClie . $prod->NumeroD . $prod->CodItem . $prod->salidas;
+
+            if (!isset($ventaSucursalClientes[$prod->fk_sucursal]['clientes'][$indicecheck])) {
+                $ventaSucursalClientes[$prod->fk_sucursal]['clientes'][$indicecheck] = [
+                    'fecha'    => $prod->factura->fechaformat ?? '',
+                    'cliente'  => $prod->factura->cliente->descrip ?? ('Cliente ' . $prod->factura->CodClie),
+                    'CodClie'  => $prod->factura->CodClie,
+                    'NumeroD'  => $prod->NumeroD,
+                    'CodItem'  => $prod->CodItem,
+                    'producto' => $prod->producto->descrip,
+                    'cantidad' => $prod->salidas,
+                    'costod'   => $prod->costod,
+                ];
             }
 
-            $indicecheck  =  $prod->factura->CodClie.$prod->NumeroD.$prod->CodItem.$prod->salidas;
-
-            if(!isset($ventaSucursalClientes[$prod->fk_sucursal]['clientes'][$indicecheck])){
-                $ventaSucursalClientes[$prod->fk_sucursal]['clientes'][$indicecheck]['fecha']    = $prod->factura->fechaformat;
-                $ventaSucursalClientes[$prod->fk_sucursal]['clientes'][$indicecheck]['cliente']  = (isset($prod->factura->cliente->descrip))? $prod->factura->cliente->descrip : 'Cliente faltante codclie:'.$prod->factura->CodClie;
-                $ventaSucursalClientes[$prod->fk_sucursal]['clientes'][$indicecheck]['CodClie']  = (isset($prod->factura->CodClie))?$prod->factura->CodClie : '';
-                $ventaSucursalClientes[$prod->fk_sucursal]['clientes'][$indicecheck]['NumeroD']  = $prod->NumeroD;
-                $ventaSucursalClientes[$prod->fk_sucursal]['clientes'][$indicecheck]['CodItem']  = $prod->CodItem;
-                $ventaSucursalClientes[$prod->fk_sucursal]['clientes'][$indicecheck]['producto'] = $prod->producto->descrip;
-                $ventaSucursalClientes[$prod->fk_sucursal]['clientes'][$indicecheck]['cantidad'] = $prod->salidas;
-                $ventaSucursalClientes[$prod->fk_sucursal]['clientes'][$indicecheck]['costod']   = $prod->costod;
+            // Acumular por cliente
+            $cc = $prod->factura->CodClie;
+            if (!isset($clienteTotales[$cc])) {
+                $clienteTotales[$cc] = [
+                    'nombre'   => $prod->factura->cliente->descrip ?? ('Cliente ' . $cc),
+                    'codclie'  => $cc,
+                    'unidades' => 0,
+                    'monto'    => 0,
+                    'documentos' => [],
+                ];
             }
+            $clienteTotales[$cc]['unidades'] += $prod->salidas;
+            $clienteTotales[$cc]['monto']    += $prod->costod;
 
             $ventaSucuProd[$prod->CodItem][$prod->fk_sucursal]              += $prod->salidas;
             $ventainsprodsucu[$prod->producto->codinst][$prod->fk_sucursal] += $prod->salidas;
             $ventainspadre[$prod->producto->instancia->padre->codinst]      += $prod->salidas;
-
         }
 
-        return view('reporteMotos', compact( 'inspadre', 'ventaSucursalClientes', 'ventainsprodsucu', 'ventainspadre', 'instanciaspadre', 'ventaSucuProd', 'fechasreport', 'productos', 'instancias', 'sucursales', 'ventaInstancia', 'ventaSucursal', 'ventaProductos', 'fecha1', 'fecha2'));
+        // === KPIs GERENCIALES ===
+        $totalFacturas  = count($facturasUnicas);
+        $ticketPromedio = $totalFacturas > 0 ? $totalMonto / $totalFacturas : 0;
+        $unidadesPorFactura = $totalFacturas > 0 ? $totalUnidades / $totalFacturas : 0;
+
+        // Top 10 clientes
+        $topClientes = collect($clienteTotales)
+            ->sortByDesc('unidades')
+            ->take(10)
+            ->values()
+            ->toArray();
+
+        // Mejor día
+        $mejorDia = null;
+        if (!empty($porDiaTotales)) {
+            $diaMax = array_keys($porDiaTotales, max($porDiaTotales))[0];
+            $mejorDia = [
+                'fecha'    => Carbon::parse($diaMax)->format('d/m/Y'),
+                'unidades' => $porDiaTotales[$diaMax],
+            ];
+        }
+
+        // Sucursal líder
+        $sucursalLider = null;
+        if (!empty($ventaSucursal)) {
+            $sucMax = array_keys($ventaSucursal, max($ventaSucursal))[0];
+            $sucursalLider = [
+                'nombre'   => $sucursales[$sucMax] ?? '',
+                'unidades' => $ventaSucursal[$sucMax],
+            ];
+        }
+
+        // Modelo más vendido
+        $modeloLider = null;
+        if (!empty($ventaInstancia)) {
+            $instMax = array_keys($ventaInstancia, max($ventaInstancia))[0];
+            $modeloLider = [
+                'nombre'   => $instancias[$instMax] ?? '',
+                'unidades' => $ventaInstancia[$instMax],
+            ];
+        }
+
+        // ============================================================
+        // COMPARATIVO CON PERÍODO ANTERIOR (misma duración)
+        // ============================================================
+        $fechaDesdeAnt = $fechaDesde->copy()->subDays($diasRango);
+        $fechaHastaAnt = $fechaHasta->copy()->subDays($diasRango);
+
+        $itemsAnterior = Saitemfac::query()
+            ->whereIn('TipoFac', ['Z', 'W'])
+            ->where('esserv', 0)
+            ->whereRaw("fk_sucursal in ($arraysucursales)")
+            ->whereBetween('FechaE', [
+                $fechaDesdeAnt->format('Y-m-d') . ' 00:00:00.00',
+                $fechaHastaAnt->format('Y-m-d') . ' 23:59:59.00',
+            ])
+            ->whereHas('sucursal.comercial', fn($q) => $q->where('fk_comercial', $comercialid))
+            ->whereHas('producto.instancia', fn($q) => $q->where('codalte', 'LIKE', "{$codalte}%"))
+            ->selectRaw("sum(Cantidad * Signo) as salidas, sum(costod * Signo) as monto")
+            ->first();
+
+        $unidadesAnterior = $itemsAnterior->salidas ?? 0;
+        $montoAnterior    = $itemsAnterior->monto ?? 0;
+
+        $variacionUnidades = $unidadesAnterior > 0
+            ? (($totalUnidades - $unidadesAnterior) / $unidadesAnterior) * 100
+            : ($totalUnidades > 0 ? 100 : 0);
+
+        $variacionMonto = $montoAnterior > 0
+            ? (($totalMonto - $montoAnterior) / $montoAnterior) * 100
+            : ($totalMonto > 0 ? 100 : 0);
+
+        return view('reporteMotos', compact(
+            'inspadre',
+            'ventaSucursalClientes',
+            'ventainsprodsucu',
+            'ventainspadre',
+            'instanciaspadre',
+            'ventaSucuProd',
+            'fechasreport',
+            'productos',
+            'instancias',
+            'sucursales',
+            'ventaInstancia',
+            'ventaSucursal',
+            'ventaProductos',
+            'fecha1',
+            'fecha2',
+            // GERENCIALES
+            'totalMonto',
+            'totalUnidades',
+            'totalFacturas',
+            'ticketPromedio',
+            'unidadesPorFactura',
+            'topClientes',
+            'mejorDia',
+            'sucursalLider',
+            'modeloLider',
+            'clienteTotales',
+            'variacionUnidades',
+            'variacionMonto',
+            'unidadesAnterior',
+            'montoAnterior',
+            // NAVEGACIÓN
+            'rangoAnterior',
+            'rangoSiguiente',
+            'puedeAnterior',
+            'puedeSiguiente',
+            'qsNav'
+        ));
     }
 
     public function reporteCompraMotos(Request $request)

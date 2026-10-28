@@ -582,15 +582,15 @@
                                                     <tbody>
                                                     @forelse($compras ?? [] as $compra)
                                                         @php
-                                                            $tipoTexto = $compra->tipocom == 'H' ? 'Compra' : 'Devolución';
-                                                            $tipoColor = $compra->tipocom == 'H' ? 'success' : 'danger';
+                                                            $tipoTexto = $compra->tipocom == 'U' ? 'Compra' : 'Devolución';
+                                                            $tipoColor = $compra->tipocom == 'U' ? 'success' : 'danger';
                                                         @endphp
                                                         <tr>
                                                             <td>{{ \Carbon\Carbon::parse($compra->fechae)->format('d/m/Y') }}</td>
                                                             <td><strong>{{ $compra->numerod }}</strong></td>
                                                             <td><span class="badge bg-{{ $tipoColor }}">{{ $tipoTexto }}</span></td>
-                                                            <td class="text-end {{ $compra->tipocom == 'I' ? 'text-danger' : '' }}">{{ number_format($compra->total_unidades_calculado ?? $compra->totalprd, 0) }}</td>
-                                                            <td class="text-end {{ $compra->tipocom == 'I' ? 'text-danger' : '' }}">${{ number_format($compra->total_monto_calculado ?? $compra->monto, 2) }}</td>
+                                                            <td class="text-end {{ $compra->tipocom == 'Y' ? 'text-danger' : '' }}">{{ number_format($compra->total_unidades_calculado ?? $compra->totalprd, 0) }}</td>
+                                                            <td class="text-end {{ $compra->tipocom == 'Y' ? 'text-danger' : '' }}">${{ number_format($compra->total_monto_calculado ?? $compra->monto, 2) }}</td>
                                                             <td>{{ $compra->sucursal->descrip ?? 'N/A' }}</td>
                                                             <td><small>{{ Str::limit($compra->descrip ?? '', 30) }}</small></td>
                                                             <td>
@@ -955,9 +955,9 @@
         });
 
         function mostrarDetalleCompra(compra, items) {
-            const signo = compra.tipocom == 'I' ? -1 : 1;
-            const tipoTexto = compra.tipocom == 'H' ? 'Compra' : 'Devolución';
-            const tipoColor = compra.tipocom == 'H' ? 'success' : 'danger';
+            const signo = compra.tipocom == 'Y' ? -1 : 1;
+            const tipoTexto = compra.tipocom == 'U' ? 'Compra' : 'Devolución';
+            const tipoColor = compra.tipocom == 'U' ? 'success' : 'danger';
 
             let totalCalculado = 0;
             let totalUnidades = 0;

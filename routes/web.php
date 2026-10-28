@@ -486,6 +486,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::resource('productos', SaprodController::class);
     Route::controller(SaprodController::class)->group(function () {
+        Route::post('saprod/listprodubiccompany', 'listprodubiccompany')->name('saprod.listprodubiccompany');
         Route::get('saprod/json', 'json');
         Route::post('saprod/check/codprod/{codprod}', 'checkcodprod');
         Route::post('saprod/home/busqueda', 'busquedaHomeProd');

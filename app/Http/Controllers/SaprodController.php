@@ -23,6 +23,30 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class SaprodController extends Controller
 {
+    public function listprodubiccompany(Request $request)
+    {
+        $codprod    = $request->codprod;
+        $comercial  = session('comercialid') ;
+        if(!$comercial) {
+            session(['comercialid' => 1]);
+            $comercial = 1;
+        }
+
+        $allsucursa = Sasucursal::where('fk_comercial',$comercial)->get();
+        $auxsucu    = [];
+
+        foreach ($allsucursa as $sucu){
+            array_push( $auxsucu, $sucu->id);
+        }
+        $auxsucu = implode(',' , $auxsucu);
+
+        $existencias = NewSaexis::with('deposito')
+            ->whereRaw("fk_sucursal in ($auxsucu) and codprod='$codprod' and existen > 0")
+            ->orderBy('codubic')->get();
+
+        return response()->json(['success'=>'success', 'existencias' => $existencias]);
+    }
+
     public function descargarPlantilla()
     {
         try {
@@ -130,15 +154,7 @@ class SaprodController extends Controller
             $comercialid = 1;
         }
 
-        $sqlcostoinv = "SELECT sum((a.preciod + a.preciod2)*b.existen) as suma, c.descrip
-                                    from   saprod a , saexis b, sasucursal c
-                                    where  a.codprod = b.codprod
-                                    and b.fk_sucursal = c.id
-                                    and a.comercial = $comercialid
-                                    and c.fk_comercial = $comercialid
-                                group by  c.descrip order by c.descrip
-                        union
-
+        $sqlcostoinv = "
                            SELECT sum((a.preciod + a.preciod2)*b.existen) as suma, c.descrip
                                     from   saprod a , newsaexis b, sasucursal c
                                     where  a.codprod = b.codprod
@@ -348,7 +364,7 @@ class SaprodController extends Controller
 
         $consulta = " SELECT a.descrip as producto, a.codprod, b.codinst, b.codalte, b.nivel, b.insPadre, b.descrip as instancia, d.descrip as sucursal, d.id as sucursalid,
                               (c.existen * a.preciod) as costo,  (c.existen) as cantidad
-                      FROM   saprod a, sainsta b, saexis c, sasucursal d
+                      FROM   saprod a, sainsta b, newsaexis c, sasucursal d
                       WHERE
                               a.comercial    = $comercial
                           AND a.codprod      = c.codprod
@@ -450,7 +466,7 @@ class SaprodController extends Controller
         $len         = strlen($codalte);
 
         $sqlcostoinv = "SELECT a.preciod, a.descrip, a.codprod, e.codubic, b.existen, e.descrip as deposito
-								from saprod a , saexis b, sasucursal c, sainsta d, sadepo e
+								from saprod a , newsaexis b, sasucursal c, sainsta d, sadepo e
 								where a.codprod    = b.codprod
                                 and b.fk_sucursal  = c.id
 								and b.codubic      = e.codubic

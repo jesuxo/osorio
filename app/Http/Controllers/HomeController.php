@@ -633,7 +633,8 @@ class HomeController extends Controller
             'rangoSiguiente',
             'puedeAnterior',
             'puedeSiguiente',
-            'qsNav'
+            'qsNav',
+            'diasRango'
         ));
     }
 

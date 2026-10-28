@@ -404,15 +404,45 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/productos/validar-codigo', [SaprodController::class, 'validarCodigo'])->name('productos.validar-codigo');
 
 
-    Route::resource('proveedores', SaprovController::class);
-    Route::controller(SaprovController::class)->group(function () {
-        Route::match(['get','post'],'/proveedores/{codprov?}/{tab?}', 'index')->name('proveedores.index');
-        Route::post('proveedoresupdate', 'proveedoresupdate')->name('proveedoresupdate');
-        Route::post('/proveedores/marcar-pagado', 'marcarPagado')->name('proveedores.marcar-pagado');
-    });
-
-    Route::get('proveedores/pagos/pendientes', [SaprovController::class, 'pagosPendientes'])->name('proveedores.pagos-pendientes');
+    Route::get('proveedores/analisis-gerencial-global-cxp', [SaprovController::class, 'analisisGerencialGlobalCxp'])
+        ->name('proveedores.analisis-gerencial-global-cxp');
+    Route::post('proveedores/compras-historicas-producto', [SaprovController::class, 'comprasHistoricasProducto'])
+        ->name('proveedores.compras-historicas-producto');
+    Route::post('proveedores/compras-diarias-producto', [SaprovController::class, 'comprasDiariasProducto'])
+        ->name('proveedores.compras-diarias-producto');
+    Route::post('proveedores/ventas-diarias-producto', [SaprovController::class, 'ventasDiariasProducto'])
+        ->name('proveedores.ventas-diarias-producto');
+    Route::get('proveedores/cuentas-por-pagar/resumen-general', [SaprovController::class, 'getResumenGeneralCuentasPorPagar'])
+        ->name('proveedores.cuentas-por-pagar.resumen-general');
+    Route::post('proveedores/producto/quick-update', [SaprovController::class, 'quickUpdateProducto'])
+        ->name('proveedores.producto.quick-update');
+    Route::get('proveedores/debug/{codprov}/{codprod}', [SaprovController::class, 'debug'])
+        ->name('proveedores.debug');
+    Route::post('proveedores/buscarPredictivo', [SaprovController::class, 'buscarPredictivo'])
+        ->name('proveedores.buscarPredictivo');
+    Route::match(['get','post'], 'proveedores/{codprov}/productos-panel', [SaprovController::class, 'productosPanel'])
+        ->name('proveedores.productos-panel');
+    Route::get('proveedores/{codprov}/cxp-simple', [SaprovController::class, 'cxpProveedorSimple'])
+        ->name('proveedores.cxp-simple');
+    Route::post('proveedores/{codprov}/productos-panel', [SaprovController::class, 'productosPanel'])
+        ->name('proveedores.productos-panel.post');
+    Route::get('proveedores/{codprov}/cuentas-por-pagar', [SaprovController::class, 'getCuentasPorPagar'])
+        ->name('proveedores.cuentas-por-pagar');
+    Route::post('proveedoresupdate', [SaprovController::class, 'proveedoresupdate'])
+        ->name('proveedoresupdate');
+    Route::post('proveedores/marcar-pagado', [SaprovController::class, 'marcarPagado'])
+        ->name('proveedores.marcar-pagado');
+    Route::get('proveedores/pagos/pendientes', [SaprovController::class, 'pagosPendientes'])
+        ->name('proveedores.pagos-pendientes');
     Route::get('proveedores-json', [SaprovController::class, 'json'])->name('proveedores.json');
+    Route::get('saprov/json', [SaprovController::class, 'json']);
+
+    // Resource al final: captura GET/POST/... /proveedores/{id}
+    Route::resource('proveedores', SaprovController::class);
+
+    // Index con parámetros opcionales
+    Route::match(['get','post'], 'proveedores/{codprov?}/{tab?}', [SaprovController::class, 'index'])
+        ->name('proveedores.index');
 
     Route::resource('cliente', SaclieController::class);
     Route::controller(SaclieController::class)->group(function () {

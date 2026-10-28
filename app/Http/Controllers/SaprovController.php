@@ -435,7 +435,7 @@ class SaprovController extends Controller
         $compras = Saitemcom::where('coditem', $codprod)
             ->where('codprov', $codprov)
             ->whereRaw("fk_sucursal in ($sucursalIds)")
-            ->whereIn('tipocom', ['H', 'I'])
+            ->whereIn('tipocom', ['U', 'Y'])
             ->orderBy('fechae', 'desc')
             ->orderBy('id', 'desc')
             ->get();
@@ -448,7 +448,7 @@ class SaprovController extends Controller
         $registros         = [];
 
         foreach ($compras as $item) {
-            $signo    = $item->tipocom == 'I' ? -1 : 1;
+            $signo    = $item->tipocom == 'Y' ? -1 : 1;
             $cantidad = (float) $item->cantidad * $signo;
             $monto    = (float) $item->preciod * $item->cantidad * $signo;
 
@@ -462,7 +462,7 @@ class SaprovController extends Controller
                 'fecha_fmt'  => Carbon::parse($item->fechae)->format('d/m/Y'),
                 'documento'  => $item->numerod,
                 'tipocom'    => $item->tipocom,
-                'tipo_texto' => $item->tipocom == 'H' ? 'Compra' : 'Devolución',
+                'tipo_texto' => $item->tipocom == 'U' ? 'Compra' : 'Devolución',
                 'cantidad'   => $cantidad,
                 'preciod'    => (float) $item->preciod,
                 'monto'      => $monto,
@@ -473,7 +473,7 @@ class SaprovController extends Controller
             $totalUnidades += $cantidad;
             $totalMonto    += $monto;
 
-            if ($item->tipocom == 'H') {
+            if ($item->tipocom == 'U') {
                 $totalCompras += (float) $item->cantidad;
             } else {
                 $totalDevoluciones += (float) $item->cantidad;
@@ -517,7 +517,7 @@ class SaprovController extends Controller
 
         // Obtener todos los códigos de productos que ha comprado este proveedor
         $codigos_productos = Saitemcom::where('codprov', $codprov)->whereRaw("fk_sucursal in ($sucursalIds)")
-            ->whereIn('tipocom', ['H', 'I'])
+            ->whereIn('tipocom', ['U', 'Y'])
             ->distinct()
             ->pluck('coditem')
             ->toArray();
@@ -573,7 +573,7 @@ class SaprovController extends Controller
             $producto->total_compras = Saitemcom::where('coditem', $producto->codprod)
                 ->whereRaw("fk_sucursal in ($sucursalIds)")
                 ->where('codprov', $codprov)
-                ->whereIn('tipocom', ['H', 'I'])
+                ->whereIn('tipocom', ['U', 'Y'])
                 ->whereBetween('fechae', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
                 ->select(DB::raw('SUM(preciod * cantidad * signo) as total'))
                 ->value('total') ?? 0;
@@ -582,7 +582,7 @@ class SaprovController extends Controller
             $producto->unidades_compradas = Saitemcom::where('coditem', $producto->codprod)
                 ->where('codprov', $codprov)
                 ->whereRaw("fk_sucursal in ($sucursalIds)")
-                ->whereIn('tipocom', ['H', 'I'])
+                ->whereIn('tipocom', ['U', 'Y'])
                 ->whereBetween('fechae', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
                 ->select(DB::raw('SUM(cantidad * signo) as total'))
                 ->value('total') ?? 0;
@@ -661,7 +661,7 @@ class SaprovController extends Controller
             $ultima_compra = Saitemcom::where('coditem', $producto->codprod)
                 ->where('codprov', $codprov)
                 ->with('compra')
-                ->whereIn('tipocom', ['H'])
+                ->whereIn('tipocom', ['U'])
                 ->whereRaw("fk_sucursal in ($sucursalIds)")
                 ->orderBy('fechae', 'desc')
                 ->orderBy('id', 'desc')
@@ -790,7 +790,7 @@ class SaprovController extends Controller
             })
             ->where('ic.codprov', $codprov)
             ->where('ic.coditem', $codprod)
-            ->whereIn('ic.tipocom', ['H'])
+            ->whereIn('ic.tipocom', ['U'])
             ->whereRaw("ic.fk_sucursal in ($sucursalIds)")
             ->whereNotNull('sc.nroserial')
             ->select('sc.nroserial')
@@ -849,7 +849,7 @@ class SaprovController extends Controller
         // Obtener todos los códigos de productos que ha comprado este proveedor
         $codigos_productos = Saitemcom::where('codprov', $codprov)
             ->whereRaw("fk_sucursal in ($sucursalIds)")
-            ->whereIn('tipocom', ['H', 'I'])
+            ->whereIn('tipocom', ['U', 'Y'])
             ->distinct()
             ->pluck('coditem')
             ->toArray();
@@ -873,7 +873,7 @@ class SaprovController extends Controller
         // Total de compras en el período
         $total_compras = Saitemcom::where('codprov', $codprov)
             ->whereRaw("fk_sucursal in ($sucursalIds)")
-            ->whereIn('tipocom', ['H', 'I'])
+            ->whereIn('tipocom', ['U', 'Y'])
             ->whereBetween('fechae', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
             ->select(DB::raw('SUM(preciod * cantidad * signo) as total'))
             ->value('total') ?? 0;
@@ -941,7 +941,7 @@ class SaprovController extends Controller
 
         $compras_30dias = Saitemcom::where('codprov', $codprov)
             ->whereRaw("fk_sucursal in ($sucursalIds)")
-            ->whereIn('tipocom', ['H', 'I'])
+            ->whereIn('tipocom', ['U', 'Y'])
             ->whereBetween('fechae', [$fecha_30dias, $hoy])
             ->select(DB::raw('SUM(cantidad * preciod * signo) as total'))
             ->value('total') ?? 0;
@@ -1025,7 +1025,7 @@ class SaprovController extends Controller
         $comprasPorDia = Saitemcom::where('coditem', $codprod)
             ->where('codprov', $codprov)
             ->whereRaw("fk_sucursal in ($sucursalIds)")
-            ->whereIn('tipocom', ['H', 'I'])
+            ->whereIn('tipocom', ['U', 'Y'])
             ->whereBetween('fechae', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:58.00'])
             ->select(
                 DB::raw("DATE(fechae) as fecha"),
@@ -1040,7 +1040,7 @@ class SaprovController extends Controller
         $comprasPorSuc = Saitemcom::where('coditem', $codprod)
             ->where('codprov', $codprov)
             ->whereRaw("fk_sucursal in ($sucursalIds)")
-            ->whereIn('tipocom', ['H', 'I'])
+            ->whereIn('tipocom', ['U', 'Y'])
             ->whereBetween('fechae', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:58.00'])
             ->select(
                 'fk_sucursal',
@@ -1308,7 +1308,7 @@ class SaprovController extends Controller
         // Obtener todos los códigos de productos que ha comprado este proveedor
         $codigos_productos = Saitemcom::where('codprov', $codprov)
             ->whereRaw("fk_sucursal in ($sucursalIds)")
-            ->whereIn('tipocom', ['H', 'I'])
+            ->whereIn('tipocom', ['U', 'Y'])
             ->distinct()
             ->pluck('coditem')
             ->toArray();
@@ -1425,7 +1425,7 @@ class SaprovController extends Controller
 
         // Obtener todos los códigos de productos que ha comprado este proveedor
         $codigos_productos = Saitemcom::where('codprov', $codprov)->whereRaw("fk_sucursal in ($sucursalIds)")
-            ->whereIn('tipocom', ['H', 'I'])
+            ->whereIn('tipocom', ['U', 'Y'])
             ->distinct()
             ->pluck('coditem')
             ->toArray();
@@ -1460,7 +1460,7 @@ class SaprovController extends Controller
 
         // Obtener todos los códigos de productos que ha comprado este proveedor
         $codigos_productos = Saitemcom::where('codprov', $codprov)->whereRaw("fk_sucursal in ($sucursalIds)")
-            ->whereIn('tipocom', ['H', 'I'])
+            ->whereIn('tipocom', ['U', 'Y'])
             ->distinct()
             ->pluck('coditem')
             ->toArray();
@@ -1542,7 +1542,7 @@ class SaprovController extends Controller
         $hace12m = now()->subMonths(12)->format('Y-m-d');
         $historiales = Saitemcom::whereIn('codprov', $codprovs)
             ->whereRaw("fk_sucursal in ($sucursalStr)")
-            ->whereIn('tipocom', ['H', 'I'])
+            ->whereIn('tipocom', ['U', 'Y'])
             ->where('fechae', '>=', $hace12m)
             ->select(
                 'codprov',
@@ -2189,7 +2189,7 @@ class SaprovController extends Controller
         $query = Sacomp::selectRaw('id,codprov,numerod,tipocom,fk_sucursal,fechae')
                 ->where('codprov', $codprov)
                 ->with(['sucursal'])
-                ->whereIn('tipocom', ['H', 'I'])
+                ->whereIn('tipocom', ['U', 'Y'])
                 ->whereRaw("fk_sucursal in ($sucursales)" )
                 ->orderBy('fechae', 'desc');
 
@@ -2213,7 +2213,7 @@ class SaprovController extends Controller
             $totalUnidades = 0;
             $totalMonto    = 0;
 
-            $signo = $compra->tipocom == 'I' ? -1 : 1;
+            $signo = $compra->tipocom == 'Y' ? -1 : 1;
 
             foreach ($compra->items as $item) {
                 $totalUnidades += $item->cantidad * $signo;
@@ -2251,7 +2251,7 @@ class SaprovController extends Controller
             })
             ->where('ic.codprov', $codprov)
             ->where('ic.coditem', $codprod)
-            ->whereIn('ic.tipocom', ['H', 'I'])
+            ->whereIn('ic.tipocom', ['U', 'Y'])
             ->whereRaw("ic.fk_sucursal in ($sucursalIds)")
             ->whereNotNull('sc.nroserial')
             ->select('sc.nroserial')

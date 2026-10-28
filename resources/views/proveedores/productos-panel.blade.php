@@ -469,9 +469,9 @@
                                     <tbody>
                                     @forelse($compras ?? [] as $compra)
                                         @php
-                                            $signo = $compra->tipocom == 'I' ? -1 : 1;
-                                            $tipoTexto = $compra->tipocom == 'H' ? 'Compra' : 'Dev ';
-                                            $tipoColor = $compra->tipocom == 'H' ? 'success' : 'danger';
+                                            $signo = $compra->tipocom == 'Y' ? -1 : 1;
+                                            $tipoTexto = $compra->tipocom == 'U' ? 'Compra' : 'Dev ';
+                                            $tipoColor = $compra->tipocom == 'U' ? 'success' : 'danger';
                                         @endphp
                                         <tr>
                                             <td class="text-center" style="font-size: 11px">{{ \Carbon\Carbon::parse($compra->fechae)->format('d/m/Y') }}</td>
@@ -485,10 +485,10 @@
                                                 </button>
                                             </td>
 
-                                            <td style="font-size: 11px"class="text-center {{ $compra->tipocom == 'I' ? 'text-danger' : '' }}">
+                                            <td style="font-size: 11px"class="text-center {{ $compra->tipocom == 'Y' ? 'text-danger' : '' }}">
                                                 {{ number_format($compra->total_unidades_calculado ?? $compra->totalprd, 0) }}
                                             </td>
-                                            <td style="font-size: 11px"class="text-end {{ $compra->tipocom == 'I' ? 'text-danger' : '' }}">
+                                            <td style="font-size: 11px"class="text-end {{ $compra->tipocom == 'U' ? 'text-danger' : '' }}">
                                                 {{ number_format($compra->total_monto_calculado ?? $compra->monto, 2) }}
                                             </td>
                                             <td style="font-size: 11px">{{ (isset($compra->sucursal->descrip))? str_replace("SARA","",$compra->sucursal->descrip) : 'N/A' }}</td>
@@ -1307,7 +1307,7 @@
                                 '<i class="ri-inbox-line fs-3 d-block"></i>Sin compras registradas</td></tr>';
                         } else {
                             registros.forEach(function (r) {
-                                const esDevolucion = r.tipocom === 'I';
+                                const esDevolucion = r.tipocom === 'Y';
                                 const tipoColor = esDevolucion ? 'danger' : 'success';
                                 const cantColor = esDevolucion ? 'text-danger' : '';
 
@@ -1986,9 +1986,9 @@
             });
 
             function mostrarDetalleCompra(compra, items) {
-                const signo = compra.tipocom == 'I' ? -1 : 1;
-                const tipoTexto = compra.tipocom == 'H' ? 'Compra' : 'Devolución';
-                const tipoColor = compra.tipocom == 'H' ? 'success' : 'danger';
+                const signo = compra.tipocom == 'Y' ? -1 : 1;
+                const tipoTexto = compra.tipocom == 'U' ? 'Compra' : 'Devolución';
+                const tipoColor = compra.tipocom == 'U' ? 'success' : 'danger';
 
                 // Calcular el total desde los items
                 let totalCalculado = 0;

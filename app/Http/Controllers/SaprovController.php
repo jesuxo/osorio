@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cwcxcprv;
 use App\Models\Cwviajemoto;
+use App\Models\NewSaexis;
 use App\Models\Sacomercial;
 use App\Models\Sainsta;
 use App\Models\Saprodsucursal;
@@ -645,9 +646,9 @@ class SaprovController extends Controller
             }
 
             // ========== EXISTENCIA ACTUAL TOTAL ==========
-            $producto->existencia_actual = Saexis::where('codprod', $producto->codprod)
+            $producto->existencia_actual = NewSaexis::where('codprod', $producto->codprod)
                 ->whereRaw("fk_sucursal in ($sucursalIds)")
-                ->sum('newexisten');
+                ->sum('existen');
 
             // ========== ÚLTIMA COMPRA ==========
             $ultima_compra = Saitemcom::where('coditem', $producto->codprod)
@@ -678,9 +679,9 @@ class SaprovController extends Controller
             // ========== EXISTENCIAS POR SUCURSAL ==========
             $producto->existencias_por_sucursal = [];
             foreach ($sucursales as $sucursal) {
-                $existencia = Saexis::where('codprod', $producto->codprod)
+                $existencia = NewSaexis::where('codprod', $producto->codprod)
                     ->where('fk_sucursal', $sucursal->id)
-                    ->sum('newexisten');
+                    ->sum('existen');
 
                 $producto->existencias_por_sucursal[$sucursal->id] = [
                     'nombre' => $sucursal->descrip,

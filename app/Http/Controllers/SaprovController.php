@@ -521,13 +521,13 @@ class SaprovController extends Controller
         // Obtener productos con sus datos básicos
         $query = Saprod::whereIn('codprod', $codigos_productos)
             ->where('comercial', $comercial)
-            ->select('codprod', 'descrip', 'marca', 'preciod', 'costod', 'costod2', 'costod3', 'existen', 'codinst');
+            ->select('codprod', 'descrip', 'marca', 'preciod', 'costod', 'costod2', 'costod3', 'newexisten', 'codinst');
 
         // Aplicar filtro de productos con stock
         if ($filtro == 'con_stock') {
-            $query->where('existen', '>', 0);
+            $query->where('newexisten', '>', 0);
         } elseif ($filtro == 'sin_stock') {
-            $query->where('existen', '<=', 0);
+            $query->where('newexisten', '<=', 0);
         }
 
         $productos = $query->get();
@@ -553,7 +553,7 @@ class SaprovController extends Controller
             $producto->costod   = $productoModel->costod;
             $producto->costod2  = $productoModel->costod2;
             $producto->costod3  = $productoModel->costod3;
-            $producto->existen  = $productoModel->existen;
+            $producto->newexisten  = $productoModel->newexisten;
             $producto->codinst  = $productoModel->codinst;
 
             $costo              = (float) $producto->preciod;
@@ -647,7 +647,7 @@ class SaprovController extends Controller
             // ========== EXISTENCIA ACTUAL TOTAL ==========
             $producto->existencia_actual = Saexis::where('codprod', $producto->codprod)
                 ->whereRaw("fk_sucursal in ($sucursalIds)")
-                ->sum('existen');
+                ->sum('newexisten');
 
             // ========== ÚLTIMA COMPRA ==========
             $ultima_compra = Saitemcom::where('coditem', $producto->codprod)
@@ -680,7 +680,7 @@ class SaprovController extends Controller
             foreach ($sucursales as $sucursal) {
                 $existencia = Saexis::where('codprod', $producto->codprod)
                     ->where('fk_sucursal', $sucursal->id)
-                    ->sum('existen');
+                    ->sum('newexisten');
 
                 $producto->existencias_por_sucursal[$sucursal->id] = [
                     'nombre' => $sucursal->descrip,
@@ -912,13 +912,13 @@ class SaprovController extends Controller
         // Valor total del inventario
         $valor_inventario = Saprod::whereIn('codprod', $codigos_productos)
             ->where('comercial', $comercial)
-            ->select(DB::raw('SUM(existen * preciod) as total'))
+            ->select(DB::raw('SUM(newexisten * preciod) as total'))
             ->value('total') ?? 0;
 
         // Existencia total
         $existencia_total = Saprod::whereIn('codprod', $codigos_productos)
             ->where('comercial', $comercial)
-            ->sum('existen');
+            ->sum('newexisten');
 
         // Rotación de inventario
         $dias_periodo = Carbon::parse($fecha_desde.' 00:00:00.00')->diffInDays(Carbon::parse($fecha_hasta.' 23:59:58.00')) + 1;
@@ -1311,7 +1311,7 @@ class SaprovController extends Controller
 
         $productosModels = Saprod::whereIn('codprod', $codigos_productos)
             ->where('comercial', $comercial)
-            ->select('codprod', 'descrip', 'preciod', 'costod', 'existen', 'codinst')
+            ->select('codprod', 'descrip', 'preciod', 'costod', 'newexisten', 'codinst')
             ->get();
 
         // Pre-cargar información de seriales para todos los productos
@@ -1332,7 +1332,7 @@ class SaprovController extends Controller
             $producto->descrip = $productoModel->descrip;
             $producto->preciod = $productoModel->preciod;
             $producto->costod = $productoModel->costod;
-            $producto->existen = $productoModel->existen;
+            $producto->newexisten = $productoModel->newexisten;
             $producto->codinst = $productoModel->codinst;
 
             // ========== VENTAS FILTRADAS POR PROVEEDOR ==========
@@ -1376,12 +1376,12 @@ class SaprovController extends Controller
                     ->value('total') ?? 0;
             }
 
-            $producto->rotacion = $producto->existen > 0 ? $producto->unidades_vendidas / $producto->existen : 0;
+            $producto->rotacion = $producto->newexisten > 0 ? $producto->unidades_vendidas / $producto->newexisten : 0;
 
             // Calcular días de stock
             $dias_periodo = Carbon::parse($fecha_desde.' 00:00:00.00')->diffInDays(Carbon::parse($fecha_hasta.' 23:59:58.00')) + 1;
             $venta_diaria = $dias_periodo > 0 ? $producto->unidades_vendidas / $dias_periodo : 0;
-            $producto->dias_stock = $venta_diaria > 0 ? $producto->existen / $venta_diaria : 0;
+            $producto->dias_stock = $venta_diaria > 0 ? $producto->newexisten / $venta_diaria : 0;
 
             // Calcular margen
             $producto->margen = $producto->costod > 0
@@ -1427,9 +1427,9 @@ class SaprovController extends Controller
         }
 
         return Saprod::whereIn('codprod', $codigos_productos)->where('comercial',$comercial)
-            ->select('codprod', 'descrip', 'existen')
-            ->where('existen', '<', 10) // Stock menor a 10 unidades
-            ->orderBy('existen', 'asc')
+            ->select('codprod', 'descrip', 'newexisten')
+            ->where('newexisten', '<', 10) // Stock menor a 10 unidades
+            ->orderBy('newexisten', 'asc')
             ->limit($limite)
             ->get();
     }

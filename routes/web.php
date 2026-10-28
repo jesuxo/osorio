@@ -551,7 +551,7 @@ Route::middleware(['auth'])->group(function () {
 // Mantener compatibilidad con rutas antiguas
     Route::get('operaciones/{codprod}/{serial}', [SerialController::class, 'historial']);
     Route::match(['get','post'],'/reporte/compra', [CompraController::class, 'reporte'])->name('reportecompra');
-
+    Route::post('/compras/documento-ajax', [SacompController::class, 'documentoAjax'])->name('compras.documento-ajax');
 
     Route::get('/bancos/{id}/moneda', function($id) {
         $banco = \App\Models\Cwbancos::find($id);

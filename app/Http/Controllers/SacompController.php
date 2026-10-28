@@ -15,6 +15,40 @@ use Illuminate\Http\Request;
 
 class SacompController extends Controller
 {
+    public function documentoAjax(Request $request)
+    {
+        $id = $request->id;
+
+        $comercial  = session('comercialid') ;
+        if(!$comercial) {
+            session(['comercialid' => 1]);
+            $comercial = 1;
+        }
+
+        $sucursales  = Sasucursal::where("fk_comercial", $comercial)->get();
+        $sucursalarr = $sucursales->pluck('id');
+        $sucursalIds = implode(",", $sucursalarr->toArray());
+
+
+        $compra = Sacomp::with(['sucursal'])->whereRaw("fk_sucursal in ($sucursalIds)")
+            ->where('id', $id)
+            ->first();
+
+        if (!$compra) {
+            return response()->json(['success' => false, 'message' => 'Compra no encontrada']);
+        }
+
+        $items = Saitemcom::where('tipocom', $compra->tipocom)->whereRaw("fk_sucursal in ($sucursalIds)")
+            ->where('numerod', $compra->numerod)
+            ->where('codprov', $compra->codprov)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'compra' => $compra,
+            'items' => $items
+        ]);
+    }
     public function documento(Request $request)
     {
         $sucursalid    = str_replace("300","",$request->sucursal);

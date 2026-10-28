@@ -617,14 +617,14 @@ class SaprovController extends Controller
                 // Productos SIN serial: no podemos distinguir, se cuentan todas las ventas
                 $producto->unidades_vendidas = Saitemfac::where('CodItem', $producto->codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
-                    ->whereIn('TipoFac', ['A', 'B'])
+                    ->whereIn('TipoFac', ['Z', 'W'])
                     ->whereBetween('FechaE', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
                     ->select(DB::raw('SUM( cantidad * signo) as total'))
                     ->value('total') ?? 0;
 
                 $producto->total_ventas = Saitemfac::where('CodItem', $producto->codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
-                    ->whereIn('TipoFac', ['A', 'B'])
+                    ->whereIn('TipoFac', ['Z', 'W'])
                     ->whereBetween('FechaE', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
                     ->select(DB::raw('SUM(costodoriginal * cantidad * signo) as total'))
                     ->value('total') ?? 0;
@@ -632,7 +632,7 @@ class SaprovController extends Controller
                 // Calcular última venta para días sin venta
                 $ultima_venta = Saitemfac::where('CodItem', $producto->codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
-                    ->whereIn('TipoFac', ['A'])
+                    ->whereIn('TipoFac', ['Z'])
                     ->orderBy('FechaE', 'desc')
                     ->first();
 
@@ -807,7 +807,7 @@ class SaprovController extends Controller
             })
             ->whereIn('sf.NroSerial', $seriales)
             ->where('ifac.CodItem', $codprod)
-            ->whereIn('ifac.TipoFac', ['A', 'B'])
+            ->whereIn('ifac.TipoFac', ['Z', 'W'])
             ->whereBetween('ifac.FechaE', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
             ->whereRaw("ifac.fk_sucursal in ($sucursalIds)")
             ->select(
@@ -890,7 +890,7 @@ class SaprovController extends Controller
                         })
                         ->whereIn('sf.NroSerial', $serialesCompra[$codprod])
                         ->where('ifac.CodItem', $codprod)
-                        ->whereIn('ifac.TipoFac', ['A'])
+                        ->whereIn('ifac.TipoFac', ['Z'])
                         ->whereRaw("ifac.fk_sucursal in ($sucursalIds) and date_format(ifac.FechaE,'%Y-%m-%d') between '$fecha_desde 00:00:00.00' and '$fecha_hasta 23:59:58.00'")
                         ->select(DB::raw('SUM(ifac.costodoriginal * ifac.cantidad * ifac.signo) as total'))
                         ->get();
@@ -900,7 +900,7 @@ class SaprovController extends Controller
                 // Productos sin serial: sumamos todas las ventas
                 $ventasProducto = Saitemfac::where('CodItem', $codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
-                    ->whereIn('TipoFac', ['A', 'B'])
+                    ->whereIn('TipoFac', ['Z', 'W'])
                     ->whereBetween('FechaE', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
                     ->select(DB::raw('SUM(costodoriginal * cantidad * signo) as total'))
                     ->value('total') ?? 0;
@@ -957,7 +957,7 @@ class SaprovController extends Controller
                         })
                         ->whereIn('sf.NroSerial', $serialesCompra[$codprod])
                         ->where('ifac.CodItem', $codprod)
-                        ->whereIn('ifac.TipoFac', ['A'])
+                        ->whereIn('ifac.TipoFac', ['Z'])
                         ->whereRaw("ifac.fk_sucursal in ($sucursalIds) and date_format(ifac.FechaE,'%Y-%m-%d') between '$fecha_desde 00:00:00.00' and '$fecha_hasta 23:59:58.00'")
                         ->select(DB::raw('SUM(ifac.costodoriginal * ifac.cantidad * ifac.signo) as total'))
                         ->get();
@@ -967,7 +967,7 @@ class SaprovController extends Controller
             } else {
                 $ventasProducto = Saitemfac::where('CodItem', $codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
-                    ->whereIn('TipoFac', ['A', 'B'])
+                    ->whereIn('TipoFac', ['Z', 'W'])
                     ->whereBetween('FechaE', [$fecha_30dias, $hoy])
                     ->select(DB::raw('SUM(costodoriginal * cantidad * signo) as total'))
                     ->value('total') ?? 0;
@@ -1154,7 +1154,7 @@ class SaprovController extends Controller
                     })
                     ->whereIn('sf.NroSerial', $serialesCompra)
                     ->where('ifac.CodItem', $codprod)
-                    ->whereIn('ifac.TipoFac', ['A', 'B'])
+                    ->whereIn('ifac.TipoFac', ['Z', 'W'])
                     ->whereRaw("ifac.fk_sucursal in ($sucursalIds)")
                     ->whereBetween('ifac.FechaE', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
                     ->select(
@@ -1176,7 +1176,7 @@ class SaprovController extends Controller
                     })
                     ->whereIn('sf.NroSerial', $serialesCompra)
                     ->where('ifac.CodItem', $codprod)
-                    ->whereIn('ifac.TipoFac', ['A', 'B'])
+                    ->whereIn('ifac.TipoFac', ['Z', 'W'])
                     ->whereRaw("ifac.fk_sucursal in ($sucursalIds)")
                     ->whereBetween('ifac.FechaE', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
                     ->select(
@@ -1191,7 +1191,7 @@ class SaprovController extends Controller
             // ----- Por día -----
             $ventasPorDia = Saitemfac::where('CodItem', $codprod)
                 ->whereRaw("fk_sucursal in ($sucursalIds)")
-                ->whereIn('TipoFac', ['A', 'B'])
+                ->whereIn('TipoFac', ['Z', 'W'])
                 ->whereBetween('FechaE', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
                 ->select(
                     DB::raw("DATE(FechaE) as fecha"),
@@ -1205,7 +1205,7 @@ class SaprovController extends Controller
             // ----- Por sucursal -----
             $ventasPorSuc = Saitemfac::where('CodItem', $codprod)
                 ->whereRaw("fk_sucursal in ($sucursalIds)")
-                ->whereIn('TipoFac', ['A', 'B'])
+                ->whereIn('TipoFac', ['Z', 'W'])
                 ->whereBetween('FechaE', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
                 ->select(
                     'fk_sucursal',
@@ -1363,14 +1363,14 @@ class SaprovController extends Controller
                 // Productos SIN serial: no podemos distinguir, se cuentan todas las ventas
                 $producto->unidades_vendidas = Saitemfac::where('CodItem', $producto->codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
-                    ->whereIn('TipoFac', ['A', 'B'])
+                    ->whereIn('TipoFac', ['Z', 'W'])
                     ->whereBetween('FechaE', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
                     ->select(DB::raw('SUM(  cantidad * signo) as cantidad') )
                     ->value('cantidad') ?? 0;
 
                 $producto->monto_ventas = Saitemfac::where('CodItem', $producto->codprod)
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
-                    ->whereIn('TipoFac', ['A', 'B'])
+                    ->whereIn('TipoFac', ['Z', 'W'])
                     ->whereBetween('FechaE', [$fecha_desde.' 00:00:00.00', $fecha_hasta.' 23:59:58.00'])
                     ->select(DB::raw('SUM(costodoriginal * signo) as total'))
                     ->value('total') ?? 0;
@@ -2264,7 +2264,7 @@ class SaprovController extends Controller
                 })
                 ->whereIn('sf.NroSerial', $serialesList)
                 ->where('ifac.CodItem', $codprod)
-                ->whereIn('ifac.TipoFac', ['A', 'B'])
+                ->whereIn('ifac.TipoFac', ['Z', 'W'])
                 ->whereRaw("ifac.fk_sucursal in ($sucursalIds)")
                 ->select(
                     'ifac.id',
@@ -2283,7 +2283,7 @@ class SaprovController extends Controller
         // 3. Verificar ventas totales del producto (sin filtrar)
         $ventasTotales = Saitemfac::where('CodItem', $codprod)
             ->whereRaw("fk_sucursal in ($sucursalIds)")
-            ->whereIn('TipoFac', ['A', 'B'])
+            ->whereIn('TipoFac', ['Z', 'W'])
             ->sum('cantidad');
 
 

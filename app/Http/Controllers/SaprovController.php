@@ -891,7 +891,7 @@ class SaprovController extends Controller
                         })
                         ->whereIn('sf.NroSerial', $serialesCompra[$codprod])
                         ->where('ifac.CodItem', $codprod)
-                        ->whereIn('ifac.TipoFac', ['Z'])
+                        ->whereIn('ifac.TipoFac', ['Z','W'])
                         ->whereRaw("ifac.fk_sucursal in ($sucursalIds) and date_format(ifac.FechaE,'%Y-%m-%d') between '$fecha_desde 00:00:00.00' and '$fecha_hasta 23:59:58.00'")
                         ->select(DB::raw('SUM(ifac.costodoriginal * ifac.cantidad * ifac.signo) as total'))
                         ->get();
@@ -958,7 +958,7 @@ class SaprovController extends Controller
                         })
                         ->whereIn('sf.NroSerial', $serialesCompra[$codprod])
                         ->where('ifac.CodItem', $codprod)
-                        ->whereIn('ifac.TipoFac', ['Z'])
+                        ->whereIn('ifac.TipoFac', ['Z','W'])
                         ->whereRaw("ifac.fk_sucursal in ($sucursalIds) and date_format(ifac.FechaE,'%Y-%m-%d') between '$fecha_desde 00:00:00.00' and '$fecha_hasta 23:59:58.00'")
                         ->select(DB::raw('SUM(ifac.costodoriginal * ifac.cantidad * ifac.signo) as total'))
                         ->get();

@@ -54,26 +54,7 @@
                     <h6 class="fw-bold text-primary"><i class="bi bi-tags me-2"></i>Costos</h6>
 
                     <div class="row g-3">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Costo Anterior</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">$</span>
-                                    <input type="text" class="form-control precio-input" id="editPreciodant"
-                                           name="preciodant" placeholder="0.00">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Costo Promedio</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">$</span>
-                                    <input type="text" class="form-control precio-input" id="editPreciodpro"
-                                           name="preciodpro" placeholder="0.00">
-                                </div>
-                            </div>
-                        </div>
+
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label class="form-label">Costo Actual</label>

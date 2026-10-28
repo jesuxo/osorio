@@ -291,8 +291,6 @@ class SaprovController extends Controller
                 'descrip'    => 'required|string|max:255',
                 'refere'     => 'nullable|string|max:40',
                 'marca'      => 'nullable|string|max:20',
-                'preciodant' => 'nullable|numeric|min:0',
-                'preciodpro' => 'nullable|numeric|min:0',
                 'preciod'    => 'nullable|numeric|min:0',
                 'costod'     => 'nullable|numeric|min:0',
                 'costod2'    => 'nullable|numeric|min:0',
@@ -313,13 +311,7 @@ class SaprovController extends Controller
             $producto->refere  = $request->refere;
             $producto->marca   = $request->marca;
 
-            // Precios (costo)
-            if ($request->has('preciodant')) {
-                $producto->preciodant = $this->formatNumber($request->preciodant);
-            }
-            if ($request->has('preciodpro')) {
-                $producto->preciodpro = $this->formatNumber($request->preciodpro);
-            }
+
             if ($request->has('preciod')) {
                 $producto->preciod = $this->formatNumber($request->preciod);
             }
@@ -920,7 +912,7 @@ class SaprovController extends Controller
         // Valor total del inventario
         $valor_inventario = Saprod::whereIn('codprod', $codigos_productos)
             ->where('comercial', $comercial)
-            ->select(DB::raw('SUM(existen * preciodpro) as total'))
+            ->select(DB::raw('SUM(existen * preciod) as total'))
             ->value('total') ?? 0;
 
         // Existencia total

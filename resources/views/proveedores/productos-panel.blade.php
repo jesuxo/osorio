@@ -2386,8 +2386,6 @@
                             $('#editDescrip').val(producto.descrip);
                             $('#editRefere').val(producto.refere || '');
                             $('#editMarca').val(producto.marca || '');
-                            $('#editPreciodant').val(producto.preciodant || 0);
-                            $('#editPreciodpro').val(producto.preciodpro || 0);
                             $('#editPreciod').val(producto.preciod || 0);
                             $('#editCostod').val(producto.costod || 0);
                             $('#editCostod2').val(producto.costod2 || 0);

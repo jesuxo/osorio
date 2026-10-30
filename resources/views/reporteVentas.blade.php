@@ -275,7 +275,7 @@
                         <div class="modal-content border-0 shadow">
                             <div class="modal-header bg-primary text-white">
                                 <div>
-                                    <h5 class="modal-title mb-0" id="modalDistribucionTitle">Distribución por Sucursal</h5>
+                                    <h5 class="modal-title mb-0" id="modalDistribucionTitle" style="color: #fff">Distribución por Sucursal</h5>
                                     <small class="text-white-50" id="modalDistribucionSubtitle"></small>
                                 </div>
                                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>

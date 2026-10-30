@@ -419,7 +419,11 @@
             );
             $('#modalDistribucionFoot').empty();
 
-            const modal = new bootstrap.Modal(document.getElementById('modalDistribucion'));
+            const modal = new bootstrap.Modal(document.getElementById('modalDistribucion'), {
+                backdrop: true,
+                keyboard: true,
+                focus: false,      // 👈 evita que Bootstrap haga focus en el modal
+            });
             modal.show();
 
             $.ajax({

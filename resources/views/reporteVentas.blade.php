@@ -13,6 +13,13 @@
         .botoncal:hover{
             font-size: 13px;
         }
+        #modalDistribucion { z-index: 99999; }
+        #modalDistribucion .modal-dialog {
+            margin-top: 90px !important;
+            margin-bottom: 90px !important;
+            pointer-events: auto;
+        }
+        body.modal-open { overflow: hidden; }
     </style>
 
 @endsection
@@ -419,12 +426,33 @@
             );
             $('#modalDistribucionFoot').empty();
 
-            const modal = new bootstrap.Modal(document.getElementById('modalDistribucion'), {
-                backdrop: true,
-                keyboard: true,
-                focus: false,      // 👈 evita que Bootstrap haga focus en el modal
+            // 👇 Guardamos la posición actual del scroll ANTES de abrir
+            const scrollActual = window.scrollY;
+
+            const modalEl = document.getElementById('modalDistribucion');
+
+            // 👇 Bloqueamos el body manualmente para que no salte
+            $('body').css({
+                position: 'fixed',
+                top: -scrollActual + 'px',
+                width: '100%',
+                overflow: 'hidden'
             });
+
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
+
+            // Al cerrar, restauramos la posición
+            modalEl.addEventListener('hidden.bs.modal', function handler() {
+                $('body').css({
+                    position: '',
+                    top: '',
+                    width: '',
+                    overflow: ''
+                });
+                window.scrollTo(0, scrollActual);
+                modalEl.removeEventListener('hidden.bs.modal', handler);
+            }, { once: true });
 
             $.ajax({
                 url: '{{ route("reporteventa.instancia-detalle") }}',

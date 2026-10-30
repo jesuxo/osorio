@@ -41,7 +41,7 @@
                     <li class="nav-item">
                         <a class="nav-link menu-link" href="#sidebarreportesdeventas"
                            data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="sidebarTransferencias">
-                            <i class="bi bi-file-check"></i> <span data-key="t-products">Reportes de Ventas</span>
+                            <i class="bi bi-file-check"></i> <span data-key="t-products">Reportes </span>
                         </a>
                         <div class="collapse menu-dropdown" id="sidebarreportesdeventas">
                             <ul class="nav nav-sm flex-column">
@@ -212,15 +212,21 @@
                                 <li class="nav-item">
                                     <a href="/proveedores" class="nav-link" data-key="t-list-view">Buscar Proveedor</a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="{{ route('reportecompra.anual') }}" class="nav-link menu-link">
+                                        <i class="bi bi-cart-check"></i> <span data-key="t-compras-anual">Compras Anual</span>
+                                    </a>
+                                </li>
                                 <li class="nav-item" style="display: none">
                                     <a href="{{ route('reportes.proveedor.index') }}" class="nav-link" data-key="t-list-view">Pagos del Proveedor</a>
                                 </li>
                                 <li class="nav-item ">
-                                    <a href="{{ route('pagos-proveedores.index') }}" class="nav-link" data-key="t-list-view">Motos</a>
+                                    <a href="{{ route('pagos-proveedores.index') }}" class="nav-link" data-key="t-list-view">Motos </a>
                                 </li>
                                 <li class="nav-item ">
                                     <a href="{{ route('reporte-facturas') }}" class="nav-link" data-key="t-list-view">Reporte de Facturas</a>
                                 </li>
+
 
                             </ul>
                         </div>

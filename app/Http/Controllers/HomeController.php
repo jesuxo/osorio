@@ -2105,4 +2105,163 @@ class HomeController extends Controller
             return redirect()->back();
         }
     }
+
+
+    // ============================================================
+// REPORTE ANUAL DE COMPRAS
+// ============================================================
+    public function reporteCompraAnual(Request $request)
+    {
+        $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
+        $arraysucursales = implode(",", $arraysucursales);
+        $comercialid = session('comercialid') ?: 1;
+        $anio = $request->anio ?: date('Y');
+
+        // Instancias principales
+        $instancias = Sainsta::selectRaw("Descrip as label, descrip, id, nivel, codinst, codalte")
+            ->whereRaw("nivel=1 AND insPadre=0 AND tipoins=0 and comercial = $comercialid")
+            ->orderBy('descrip', 'asc')
+            ->get();
+
+        // Consulta de compras agrupada por instancia y mes
+        $results = DB::table('sacomp as c')
+            ->select([
+                'd.codinst',
+                DB::raw('MONTH(c.fechae) as mes'),
+                DB::raw('SUM(ic.cantidad * ic.signo) as cant'),
+                DB::raw('SUM(ic.preciod * ic.cantidad * ic.signo) as monto_compra'),
+                'e.codalte',
+            ])
+            ->join('saitemcom as ic', function ($join) {
+                $join->on('ic.fk_sucursal', '=', 'c.fk_sucursal')
+                    ->on('ic.numerod', '=', 'c.numerod')
+                    ->on('ic.tipocom', '=', 'c.tipocom')
+                    ->on('ic.codprov', '=', 'c.codprov');
+            })
+            ->join('saprod as d', function ($join) use ($comercialid) {
+                $join->on('d.codprod', '=', 'ic.coditem')->where('d.comercial', $comercialid);
+            })
+            ->join('sainsta as e', function ($join) use ($comercialid) {
+                $join->on('e.CodInst', '=', 'd.CodInst')
+                    ->where('e.TipoIns', '=', 0)->where('e.comercial', $comercialid);
+            })
+            ->whereIn('c.tipocom', ['U', 'Y'])
+            ->whereRaw("c.fk_sucursal in ($arraysucursales)")
+            ->whereYear('c.fechae', $anio)
+            ->groupBy('d.codinst', DB::raw('MONTH(c.fechae)'), 'e.codalte')
+            ->get();
+
+        $arrayinsta = [];
+
+        foreach ($results as $compra) {
+            foreach ($instancias as $instancia) {
+                $len = strlen($instancia->codalte);
+                if (substr($compra->codalte, 0, $len) == $instancia->codalte) {
+                    $key = $instancia->codinst;
+
+                    if (!isset($arrayinsta[$key])) {
+                        $arrayinsta[$key] = [
+                            'codinst' => $key,
+                            'descrip' => $instancia->descrip,
+                            'codalte' => $instancia->codalte,
+                            'meses'   => array_fill(1, 12, ['cant' => 0, 'monto' => 0]),
+                            'total_cant'  => 0,
+                            'total_monto' => 0,
+                        ];
+                    }
+
+                    $arrayinsta[$key]['meses'][$compra->mes]['cant']  += $compra->cant;
+                    $arrayinsta[$key]['meses'][$compra->mes]['monto'] += $compra->monto_compra;
+
+                    $arrayinsta[$key]['total_cant']  += $compra->cant;
+                    $arrayinsta[$key]['total_monto'] += $compra->monto_compra;
+                }
+            }
+        }
+
+        // Ordenar por monto total
+        uasort($arrayinsta, function($a, $b) {
+            return $b['total_monto'] <=> $a['total_monto'];
+        });
+
+        // Totales por mes
+        $totalesMes = array_fill(1, 12, ['cant' => 0, 'monto' => 0]);
+        $granTotalCant = 0;
+        $granTotalMonto = 0;
+
+        foreach ($arrayinsta as $row) {
+            for ($i = 1; $i <= 12; $i++) {
+                $totalesMes[$i]['cant']  += $row['meses'][$i]['cant'];
+                $totalesMes[$i]['monto'] += $row['meses'][$i]['monto'];
+            }
+            $granTotalCant  += $row['total_cant'];
+            $granTotalMonto += $row['total_monto'];
+        }
+
+        return view('reporteComprasAnual', compact('arrayinsta', 'totalesMes', 'granTotalCant', 'granTotalMonto', 'anio'));
+    }
+
+// ============================================================
+// MODAL: Distribución de compras por sucursal
+// ============================================================
+    public function instanciaDetalleCompra(Request $request)
+    {
+        $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
+        $arraysucursales = implode(",", $arraysucursales);
+        $comercialid = session('comercialid') ?: 1;
+
+        $codinst = $request->codinst;
+        $mes     = $request->mes ?? 0;
+        $anio    = $request->anio ?: date('Y');
+
+        $filtroFecha = $mes > 0
+            ? "YEAR(c.fechae) = $anio AND MONTH(c.fechae) = $mes"
+            : "YEAR(c.fechae) = $anio";
+
+        $instancia = Sainsta::where('codinst', $codinst)->where('comercial', $comercialid)->first();
+
+        if (!$instancia) return response()->json(['error' => 'Instancia no encontrada'], 404);
+
+        $detalle = DB::table('sacomp as c')
+            ->join('saitemcom as ic', function ($join) {
+                $join->on('ic.fk_sucursal', '=', 'c.fk_sucursal')
+                    ->on('ic.numerod', '=', 'c.numerod')
+                    ->on('ic.tipocom', '=', 'c.tipocom')
+                    ->on('ic.codprov', '=', 'c.codprov');
+            })
+            ->join('saprod as d', function ($join) use ($comercialid) {
+                $join->on('d.codprod', '=', 'ic.coditem')->where('d.comercial', $comercialid);
+            })
+            ->join('sainsta as e', function ($join) use ($comercialid) {
+                $join->on('e.CodInst', '=', 'd.CodInst')->where('e.comercial', $comercialid);
+            })
+            ->join('sasucursal as s', function ($join) use ($comercialid) {
+                $join->on('s.id', '=', 'c.fk_sucursal')->where('s.fk_comercial', $comercialid);
+            })
+            ->whereIn('c.tipocom', ['U', 'Y'])
+            ->whereRaw("c.fk_sucursal in ($arraysucursales)")
+            ->whereRaw($filtroFecha)
+            ->whereRaw("e.codalte LIKE CONCAT(?, '%')", [$instancia->codalte])
+            ->select([
+                's.id as fk_sucursal',
+                's.descrip as sucursal',
+                DB::raw('SUM(ic.cantidad * ic.signo) as cant'),
+                DB::raw('SUM(ic.preciod * ic.cantidad * ic.signo) as monto_compra'),
+            ])
+            ->groupBy('s.id', 's.descrip')
+            ->orderByDesc('monto_compra')
+            ->get();
+
+        $totalCant = 0; $totalMonto = 0;
+        foreach ($detalle as $row) {
+            $totalCant  += $row->cant;
+            $totalMonto += $row->monto_compra;
+        }
+
+        return response()->json([
+            'instancia' => $instancia,
+            'detalle'   => $detalle,
+            'totales'   => ['cant' => $totalCant, 'monto' => $totalMonto]
+        ]);
+    }
 }

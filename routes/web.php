@@ -660,6 +660,9 @@ Route::middleware(['auth'])->group(function () {
     Route::match(['get','post'],'/reporte/lubricantes', [HomeController::class, 'reportelubricantes'])->name('reportelubricantes');
     Route::match(['get','post'],'/reporte/repuestos',   [HomeController::class, 'reporterepuestos'])  ->name('reporterepuestos');
 
+    // Reporte de compras anual y detalle para el modal
+    Route::match(['get','post'], '/reporte/compra/anual', [HomeController::class, 'reporteCompraAnual'])->name('reportecompra.anual');
+    Route::get('/reporte/compra/instancia-detalle', [HomeController::class, 'instanciaDetalleCompra'])->name('reportecompra.instancia-detalle');
 
     Route::match(['get','post'],'/reporte/venta', [HomeController::class, 'reporteventa'])->name('reporteventa');
     Route::post('/reporte/venta/sucu', [HomeController::class, 'reporteventasucu'])->name('reporteventasucu');

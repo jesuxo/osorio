@@ -32,6 +32,11 @@
                             <label class="btn btn-outline-light" for="viewMonto">Montos ($)</label>
                         </div>
 
+                        <!-- Botón Descargar Excel -->
+                        <button type="button" class="btn btn-sm btn-light fw-semibold" onclick="descargarExcelAmbos()">
+                            <i class="bi bi-file-earmark-excel me-1"></i> Excel
+                        </button>
+
                         <form method="get" action="{{ route('reporteventa.anual') }}" class="d-flex gap-2 mb-0">
                             <select name="anio" class="form-select form-select-sm border-0" onchange="this.form.submit()">
                                 @for($y = date('Y'); $y >= date('Y') - 5; $y--)
@@ -172,7 +177,94 @@
 
 @section('scripts')
     <script src="{{ URL::asset('build/js/app.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
     <script>
+
+        function descargarExcel() {
+            const tabla = document.getElementById('tablaAnual');
+            const modoCant = tabla.classList.contains('view-cant');
+            const modoTexto = modoCant ? 'Cantidades' : 'Montos USD';
+            const anio = '{{ $anio }}';
+
+            // Clonamos la tabla para limpiar los elementos ocultos por el switch
+            const tablaClon = tabla.cloneNode(true);
+
+            // Quitamos las columnas que no corresponden al modo actual
+            // Si estamos en cantidades, quitamos las celdas .col-monto
+            // Si estamos en montos, quitamos las celdas .col-cant
+            const claseAEliminar = modoCant ? '.col-monto' : '.col-cant';
+            tablaClon.querySelectorAll(claseAEliminar).forEach(el => el.remove());
+
+            // Quitamos el botón de "Detalle" (última columna) para el Excel
+            const filas = tablaClon.querySelectorAll('tr');
+            filas.forEach(tr => {
+                const celdas = tr.querySelectorAll('th, td');
+                if (celdas.length > 0) {
+                    // La última celda es la de acciones/botón
+                    const ultima = celdas[celdas.length - 1];
+                    if (ultima.querySelector('button') || (tr.closest('thead') && ultima.textContent.trim() === 'Acción')) {
+                        ultima.remove();
+                    }
+                }
+            });
+
+            // Convertimos la tabla HTML a una hoja de cálculo
+            const wb = XLSX.utils.table_to_book(tablaClon, { sheet: "Reporte" });
+            const ws = wb.Sheets["Reporte"];
+
+            // Insertamos una fila de título en la parte superior (opcional)
+            const titulo = [`Reporte de Ventas Anual ${anio} - ${modoTexto}`];
+            XLSX.utils.sheet_add_aoa(ws, [titulo], { origin: "A1" });
+
+            // Ajustamos las columnas (ancho)
+            ws['!cols'] = [
+                { wch: 35 }, // Instancia
+                ...Array(12).fill({ wch: 14 }), // 12 meses
+                { wch: 16 }  // Total
+            ];
+
+            // Generamos el nombre del archivo
+            const fecha = new Date().toISOString().slice(0, 10);
+            const nombreArchivo = `Reporte_Ventas_${anio}_${modoCant ? 'Cantidades' : 'Montos'}_${fecha}.xlsx`;
+
+            // Descargamos
+            XLSX.writeFile(wb, nombreArchivo);
+        }
+
+        function descargarExcelAmbos() {
+            const tablaOriginal = document.getElementById('tablaAnual');
+            const anio = '{{ $anio }}';
+            const wb = XLSX.utils.book_new();
+
+            ['cant', 'monto'].forEach(modo => {
+                const clon = tablaOriginal.cloneNode(true);
+                clon.classList.remove('view-cant', 'view-monto');
+                clon.classList.add('view-' + modo);
+
+                // Quitar columna de acción
+                clon.querySelectorAll('tr').forEach(tr => {
+                    const celdas = tr.querySelectorAll('th, td');
+                    if (celdas.length > 0) {
+                        const ultima = celdas[celdas.length - 1];
+                        if (ultima.querySelector('button') || ultima.textContent.trim() === 'Acción') {
+                            ultima.remove();
+                        }
+                    }
+                });
+
+                // Ocultar la columna que no corresponde
+                const claseOculta = modo === 'cant' ? '.col-monto' : '.col-cant';
+                clon.querySelectorAll(claseOculta).forEach(el => el.remove());
+
+                const ws = XLSX.utils.table_to_sheet(clon);
+                const hojaNombre = modo === 'cant' ? 'Cantidades' : 'Montos USD';
+                XLSX.utils.book_append_sheet(wb, ws, hojaNombre);
+            });
+
+            const fecha = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `Reporte_Ventas_Anual_${anio}_${fecha}.xlsx`);
+        }
         // Función para cambiar la vista
         function cambiarVista(tipo) {
             const tabla = document.getElementById('tablaAnual');

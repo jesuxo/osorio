@@ -1637,6 +1637,213 @@ class HomeController extends Controller
         ));
     }
 
+    // ============================================================
+// MODAL: Distribución por sucursal de una instancia
+// GET /reporte/venta/instancia-detalle
+// ============================================================
+    public function instanciaDetalleSucursal(Request $request)
+    {
+        $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
+        $arraysucursales = implode(",", $arraysucursales);
+
+        $comercialid = session('comercialid') ?: 1;
+
+        $codinst = $request->codinst;
+        $fecha1  = $request->fecha1; // d/m/Y
+        $fecha2  = $request->fecha2; // d/m/Y
+
+        list($d1, $m1, $y1) = explode("/", $fecha1);
+        list($d2, $m2, $y2) = explode("/", $fecha2);
+        $fec1 = "$y1-$m1-$d1";
+        $fec2 = "$y2-$m2-$d2";
+
+        $instancia = Sainsta::select('codinst', 'descrip', 'codalte')
+            ->where('codinst', $codinst)
+            ->where('comercial', $comercialid)
+            ->first();
+
+        if (!$instancia) {
+            return response()->json(['error' => 'Instancia no encontrada'], 404);
+        }
+
+        // Sucursales que tienen venta de esa instancia (o sus hijas)
+        $detalle = DB::table('saitemfac as b')
+            ->join('safact as f', function ($join) {
+                $join->on('b.fk_sucursal', '=', 'f.fk_sucursal')
+                    ->on('b.NumeroD', '=', 'f.NumeroD')
+                    ->on('b.TipoFac', '=', 'f.TipoFac');
+            })
+            ->join('saprod as d', function ($join) use ($comercialid) {
+                $join->on('d.codprod', '=', 'b.CodItem')
+                    ->where('d.comercial', $comercialid);
+            })
+            ->join('sainsta as e', function ($join) use ($comercialid) {
+                $join->on('e.CodInst', '=', 'd.CodInst')
+                    ->where('e.comercial', $comercialid);
+            })
+            ->join('sasucursal as s', function ($join) use ($comercialid) {
+                $join->on('s.id', '=', 'b.fk_sucursal')
+                    ->where('s.fk_comercial', $comercialid);
+            })
+            ->whereIn('f.tipofac', ['Z', 'W'])
+            ->where('b.EsServ', 0)
+            ->where('b.costodoriginal', '>', 0)
+            ->whereRaw("b.fk_sucursal in ($arraysucursales)")
+            ->whereBetween('f.FechaE', ["$fec1 00:00:00", "$fec2 23:59:59"])
+            ->whereRaw("e.codalte LIKE CONCAT(?, '%')", [$instancia->codalte])
+            ->select([
+                's.id as fk_sucursal',
+                's.descrip as sucursal',
+                DB::raw('SUM(b.Cantidad * f.Signo) as cant'),
+                DB::raw('SUM(b.costodoriginal * b.Cantidad * f.Signo) as precioventa'),
+                DB::raw('SUM(b.Cantidad * b.preciod * f.Signo) as preciod'),
+                DB::raw('SUM(((b.costodoriginal - b.preciod) * f.Signo) * b.Cantidad) as resta'),
+                DB::raw('SUM(b.costodoriginal * f.Signo * b.Cantidad) as basesuma'),
+            ])
+            ->groupBy('s.id', 's.descrip')
+            ->orderByDesc('cant')
+            ->get();
+
+        $totalCant = 0; $totalVenta = 0; $totalCosto = 0; $totalUtilidad = 0;
+        foreach ($detalle as $row) {
+            $totalCant    += $row->cant;
+            $totalVenta   += $row->precioventa;
+            $totalCosto   += $row->preciod;
+            $totalUtilidad+= $row->resta;
+        }
+
+        $detalle = $detalle->map(function ($row) {
+            $pct = $row->preciod > 0 ? ($row->resta / $row->preciod) * 100 : 0;
+            return [
+                'fk_sucursal'   => $row->fk_sucursal,
+                'sucursal'      => $row->sucursal,
+                'cant'          => (float) $row->cant,
+                'precioventa'   => (float) $row->precioventa,
+                'basesuma'      => (float) $row->basesuma,
+                'preciod'       => (float) $row->preciod,
+                'resta'         => (float) $row->resta,
+                'utilidad_pct'  => $pct,
+            ];
+        });
+
+        return response()->json([
+            'instancia' => [
+                'codinst' => $instancia->codinst,
+                'descrip' => $instancia->descrip,
+                'codalte' => $instancia->codalte,
+            ],
+            'detalle' => $detalle,
+            'totales' => [
+                'cant'     => $totalCant,
+                'venta'    => $totalVenta,
+                'costo'    => $totalCosto,
+                'utilidad' => $totalUtilidad,
+                'pct'      => $totalCosto > 0 ? ($totalUtilidad / $totalCosto) * 100 : 0,
+            ],
+        ]);
+    }
+
+// ============================================================
+// REPORTE ANUAL 2026 — tabla anual completa por instancia
+// GET /reporte/venta/anual
+// ============================================================
+    public function reporteVentasAnual(Request $request)
+    {
+        $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
+        $arraysucursales = implode(",", $arraysucursales);
+
+        $comercialid = session('comercialid') ?: 1;
+
+        $anio = $request->anio ?: date('Y');
+
+        $instancias = Sainsta::selectRaw("Descrip as label, descrip, id, nivel, codinst, codalte")
+            ->whereRaw("nivel=1 AND insPadre=0 AND tipoins=0 and comercial = $comercialid")
+            ->orderBy('descrip', 'asc')
+            ->get();
+
+        $results = DB::table('safact as f')
+            ->select([
+                'f.fk_sucursal',
+                'd.codinst',
+                DB::raw('(b.Cantidad*f.signo) as cant'),
+                DB::raw('(b.costodoriginal * b.cantidad * f.signo) as precioventa'),
+                DB::raw('(b.Cantidad*(b.preciod)*f.signo) as preciod'),
+                DB::raw('(((b.costodoriginal - b.preciod) * f.signo) * b.cantidad) as resta'),
+                DB::raw('((b.costodoriginal) * f.signo * b.cantidad) as basesuma'),
+                'e.codalte',
+                'a.descrip as sucursal',
+            ])
+            ->join('saitemfac as b', function ($join) {
+                $join->on('b.fk_sucursal', '=', 'f.fk_sucursal')
+                    ->on('b.numerod', '=', 'f.numerod')
+                    ->on('b.tipofac', '=', 'f.tipofac')
+                    ->where('b.nrolineac', '=', 0)
+                    ->where('b.EsServ', '=', 0)
+                    ->where('b.costodoriginal', '>', 0);
+            })
+            ->join('saprod as d', function ($join) use ($comercialid) {
+                $join->on('d.codprod', '=', 'b.coditem')
+                    ->where('d.comercial', $comercialid);
+            })
+            ->join('sainsta as e', function ($join) use ($comercialid) {
+                $join->on('e.CodInst', '=', 'd.CodInst')
+                    ->where('e.TipoIns', '=', 0)
+                    ->where('e.comercial', $comercialid);
+            })
+            ->join('sasucursal as a', function ($join) use ($comercialid) {
+                $join->on('a.id', '=', 'f.fk_sucursal')
+                    ->where('a.fk_comercial', $comercialid);
+            })
+            ->whereIn('f.tipofac', ['Z', 'W'])
+            ->whereRaw("f.fk_sucursal in ($arraysucursales)")
+            ->whereYear('f.FechaE', $anio)
+            ->get();
+
+        $arrayinsta = [];
+        $sucursales  = [];
+        $detallePorInstancia = [];
+
+        foreach ($results as $venta) {
+            if (!isset($sucursales[$venta->fk_sucursal])) {
+                $sucursales[$venta->fk_sucursal] = $venta->sucursal;
+            }
+
+            foreach ($instancias as $instancia) {
+                $len = strlen($instancia->codalte);
+                if (substr($venta->codalte, 0, $len) == $instancia->codalte) {
+                    $key = $instancia->codinst;
+
+                    if (!isset($arrayinsta[$key])) {
+                        $arrayinsta[$key] = [
+                            'descrip'     => $instancia->descrip,
+                            'codalte'     => $instancia->codalte,
+                            'cant'        => 0,
+                            'resta'       => 0,
+                            'preciod'     => 0,
+                            'basesuma'    => 0,
+                            'precioventa' => 0,
+                        ];
+                    }
+
+                    $arrayinsta[$key]['cant']        += $venta->cant;
+                    $arrayinsta[$key]['resta']       += $venta->resta;
+                    $arrayinsta[$key]['preciod']     += $venta->preciod;
+                    $arrayinsta[$key]['basesuma']    += $venta->basesuma;
+                    $arrayinsta[$key]['precioventa'] += $venta->precioventa;
+
+                    if (!isset($detallePorInstancia[$key][$venta->fk_sucursal])) {
+                        $detallePorInstancia[$key][$venta->fk_sucursal] = 0;
+                    }
+                    $detallePorInstancia[$key][$venta->fk_sucursal] += $venta->cant;
+                }
+            }
+        }
+
+        return view('reporteVentasAnual', compact(
+            'arrayinsta', 'sucursales', 'detallePorInstancia', 'anio'
+        ));
+    }
+
     public function reporteventasucu(Request $request)
     {
         $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();

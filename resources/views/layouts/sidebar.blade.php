@@ -49,6 +49,9 @@
                                     <a href="/reporte/venta" class="nav-link" data-key="t-list-view">Reporte Venta</a>
                                 </li>
                                 <li class="nav-item">
+                                    <a href="{{ route('reporteventa.anual') }}" class="nav-link" data-key="t-list-view">Reporte Venta Anual</a>
+                                </li>
+                                <li class="nav-item">
                                     <a href="/resumenVentas" class="nav-link" data-key="t-list-view">Resumen Venta</a>
                                 </li>
                                 <li class="nav-item">

@@ -156,94 +156,107 @@
                 </table>
             </div>
             <div class="col-md-12 mt-3">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0 fw-semibold">Venta por Instancias</h5>
+                            <small class="text-white-50">Desde {{ $fecha1 }} hasta {{ $fecha2 }}</small>
+                        </div>
+                        <span class="badge bg-light text-primary fw-semibold">
+                {{ count($arrayinsta ?? []) }} instancias
+            </span>
+                    </div>
 
-                <table width="100%" border="0" class=" table table-borderless table-centered align-middle table-nowrap mb-0 " style="  color:#333; ">
-                    <tr>
-                        <td width="30%" height="53" align="center" class="titulo">
-                            VENTA POR INSTANCIAS <br />
-                            DESDE  {{$fecha1}} HASTA {{$fecha2}}
-                            @php $tbasesuma = $costoxcantidad = $restaxcantidad = $tprecioventa= 0; @endphp
-                        </td>
-                    </tr>
-                    <tr>
-                        <td width="30%" valign="top">
-
-                            <table width="100%" border="0"   style="  border:1px solid #69ABBF; ">
-                                <tr  >
-                                    <td width="19%" height="30"    align="center" class="tdline" style="font-size:12px">INSTANCIA DE INVENTARIO</td>
-                                    <td width="7%" align="center" class="tdline" style="font-size:12px; background-color:#ddd" > CANTIDAD VENDIDA</td>
-                                    <td width="18%" align="center" class="tdlineff " style="font-size:12px">TOTAL VENTA</td>
-
-                                    <td width="17%" align="center" class="tdlineff" style="font-size:12px">TOTAL BASE VENTA</td>
-                                    <td width="18%"  align="center" class="tdlineff" style="font-size:12px">TOTAL COSTO</td>
-                                    <td width="12%" align="center" class="tdlineff" style="font-size:12px"> TOTAL UTILIDAD</td>
-                                    <td width="9%" align="center" class="tdlineff" style="font-size:12px"> % UTILIDAD</td>
-
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                <tr class="text-uppercase small fw-semibold text-muted">
+                                    <th class="ps-3">Instancia de Inventario</th>
+                                    <th class="text-center">Cantidad Vendida</th>
+                                    <th class="text-end">Total Venta</th>
+                                    <th class="text-end">Total Base Venta</th>
+                                    <th class="text-end">Total Costo</th>
+                                    <th class="text-end">Total Utilidad</th>
+                                    <th class="text-end">% Utilidad</th>
+                                    <th class="text-center pe-3" style="width:70px;">Detalle</th>
                                 </tr>
-
+                                </thead>
+                                <tbody>
                                 @php
-
-                                    $dataesta      = '';
-                                    $item          = 0;
-                                    $restaxcantidad= 0;
-                                    $totalcant     = 0;
-                                    $sumautilidad  = 0;
-                                    $utilidad      = 0;
-                                    $sql           = '';
-                                    list($d1,$m1,$y1) = explode("/",$fecha1);
-                                    list($d2,$m2,$y2) = explode("/",$fecha2);
-
-                                    $tantos = 0;
+                                    $tbasesuma = $costoxcantidad = $restaxcantidad = $tprecioventa = 0;
+                                    $totalcant = 0;
                                 @endphp
-                                @if(isset($arrayinsta) )
-                                    @foreach ($arrayinsta as $listavend)
-                                        @php
-
-                                            $totalcant       += $listavend['cant'];
-                                            $tprecioventa    += $listavend['precioventa'];
-                                            $tbasesuma       += $listavend['basesuma'];
-                                            $costoxcantidad  += $listavend['preciod'];
-                                            $restaxcantidad  += $listavend['resta'];
-                                            $utilidad         = 0;
-                                            if($listavend['preciod'] != 0 and $listavend['preciod']  >0 )
-                                                $utilidad = $listavend['resta'] / $listavend['preciod'];
-
-                                            $sumautilidad  += $utilidad*100
-
-                                        @endphp
-                                        @if( $listavend['cant'] != 0)
-                                            @php $tantos ++;@endphp
-                                            <tr   @php if(($tantos%2)==0){echo 'bgcolor="#ddd"'; }else{echo 'bgcolor="#fff"';} @endphp>
-                                                <td align="left" class="tdline" >{{$listavend['descrip']}}</td>
-                                                <td align="center" class="tdline"  style=" background-color:#ddd"> {{number_format($listavend['cant'],0,',','.')}}</td>
-                                                <td align="right"  class="tdline"  >{{number_format($listavend['precioventa'],2,',','.')}}</td>
-                                                <td align="right"  class="tdline"  > {{number_format($listavend['basesuma'],2,',','.')}}</td>
-                                                <td align="right"  class="tdline"  > {{number_format($listavend['preciod'],2,',','.')}} </td>
-                                                <td align="right"  class="tdline"  > {{number_format($listavend['resta'],2,',','.')}}   </td>
-                                                <td align="right"  class="tdline"  > {{number_format($utilidad*100,2,',','.')}} % </td>
-                                            </tr>
-                                        @endif
-                                    @endforeach
+                                @forelse($arrayinsta ?? [] as $key => $listavend)
+                                    @php
+                                        $totalcant      += $listavend['cant'];
+                                        $tprecioventa   += $listavend['precioventa'];
+                                        $tbasesuma      += $listavend['basesuma'];
+                                        $costoxcantidad += $listavend['preciod'];
+                                        $restaxcantidad += $listavend['resta'];
+                                        $utilidad = $listavend['preciod'] > 0
+                                            ? ($listavend['resta'] / $listavend['preciod']) * 100
+                                            : 0;
+                                    @endphp
+                                    @if($listavend['cant'] != 0)
+                                        <tr>
+                                            <td class="ps-3 fw-medium">{{ $listavend['descrip'] }}</td>
+                                            <td class="text-center">
+                                        <span class="badge bg-primary-subtle text-primary fw-semibold">
+                                            {{ number_format($listavend['cant'], 0, ',', '.') }}
+                                        </span>
+                                            </td>
+                                            <td class="text-end">$ {{ number_format($listavend['precioventa'], 2, ',', '.') }}</td>
+                                            <td class="text-end">$ {{ number_format($listavend['basesuma'], 2, ',', '.') }}</td>
+                                            <td class="text-end">$ {{ number_format($listavend['preciod'], 2, ',', '.') }}</td>
+                                            <td class="text-end fw-semibold text-success">
+                                                $ {{ number_format($listavend['resta'], 2, ',', '.') }}
+                                            </td>
+                                            <td class="text-end">
+                                        <span class="badge {{ $utilidad >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }}">
+                                            {{ number_format($utilidad, 2, ',', '.') }} %
+                                        </span>
+                                            </td>
+                                            <td class="text-center pe-3">
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-primary btn-ver-detalle"
+                                                        data-codinst="{{ $key }}"
+                                                        data-descrip="{{ $listavend['descrip'] }}"
+                                                        title="Ver distribución por sucursal">
+                                                    <i class="bi bi-diagram-3"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @endif
+                                @empty
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted py-4">
+                                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                            Sin ventas en el período
+                                        </td>
+                                    </tr>
+                                @endforelse
+                                </tbody>
+                                @if(count($arrayinsta ?? []) > 0)
+                                    <tfoot class="table-light fw-semibold">
+                                    <tr>
+                                        <td class="ps-3">TOTALES</td>
+                                        <td class="text-center">{{ number_format($totalcant, 0, ',', '.') }}</td>
+                                        <td class="text-end">$ {{ number_format($tprecioventa, 2, ',', '.') }}</td>
+                                        <td class="text-end">$ {{ number_format($tbasesuma, 2, ',', '.') }}</td>
+                                        <td class="text-end">$ {{ number_format($costoxcantidad, 2, ',', '.') }}</td>
+                                        <td class="text-end text-success">$ {{ number_format($restaxcantidad, 2, ',', '.') }}</td>
+                                        <td class="text-end">
+                                            {{ $costoxcantidad > 0 ? number_format(($restaxcantidad / $costoxcantidad) * 100, 2, ',', '.') : '0,00' }} %
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                    </tfoot>
                                 @endif
-                                <tr  >
-                                    <td height="25" align="left"  >TOTALES</td>
-                                    <td align="center" class="tdline"  style=" background-color:#ddd" > {{number_format($totalcant,0,',','.')}}</td>
-                                    <td align="right"  class="tdline"  >$  {{ number_format($tprecioventa,2,',','.') }}</td>
-                                    <td align="right"  class="tdline"  >$  {{number_format($tbasesuma,2,',','.') }}    </td>
-                                    <td align="right"  class="tdline"  >$  {{number_format($costoxcantidad,2,',','.')}}</td>
-                                    <td align="right"  class="tdline"  >$  {{number_format($restaxcantidad,2,',','.')}}</td>
-                                    <td align="right"  class="tdline"  >
-                                        @php
-                                            if($costoxcantidad>0) echo number_format(($restaxcantidad/$costoxcantidad)*100,2,',','.');
-                                        @endphp %
-                                    </td>
-                                </tr>
                             </table>
-
-                        </td>
-                    </tr>
-                </table>
-
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="col-md-6 mt-3">
                 <table width="100%" border="0" class=" table table-borderless table-centered align-middle table-nowrap mb-0 " style="  color:#333; ">
@@ -335,10 +348,50 @@
             </div>
         </div>
 
+    <!-- Modal: distribución por sucursal -->
+    <div class="modal fade" id="modalDistribucion" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white">
+                    <div>
+                        <h5 class="modal-title mb-0" id="modalDistribucionTitle">Distribución por Sucursal</h5>
+                        <small class="text-white-50" id="modalDistribucionSubtitle"></small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light small text-uppercase text-muted">
+                            <tr>
+                                <th class="ps-3">Sucursal</th>
+                                <th class="text-center">Cantidad</th>
+                                <th class="text-end">Total Venta</th>
+                                <th class="text-end">Total Costo</th>
+                                <th class="text-end">Utilidad</th>
+                                <th class="text-end pe-3">% Utilidad</th>
+                            </tr>
+                            </thead>
+                            <tbody id="modalDistribucionBody">
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                    <div class="small text-muted mt-2">Cargando...</div>
+                                </td>
+                            </tr>
+                            </tbody>
+                            <tfoot class="table-light fw-semibold" id="modalDistribucionFoot"></tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
 @endsection
 @section('scripts')
-
+    <script src="{{ URL::asset('build/js/app.js') }}"></script>
 
     <script>
         function loadingreport(action){
@@ -346,8 +399,77 @@
             $('#contentReport').html('<button class="btn btn-outline-primary btn-load"><span class="d-flex align-items-center"><span class="spinner-border flex-shrink-0" role="status"> <span class="visually-hidden"> Cargando...</span> </span> <span class="flex-grow-1 ms-2">Cargando... </span> </span> </button>');
             $('#form1').submit()
         }
+
+        $(document).on('click', '.btn-ver-detalle', function () {
+            const codinst = $(this).data('codinst');
+            const descrip = $(this).data('descrip');
+
+            $('#modalDistribucionTitle').text('Distribución: ' + descrip);
+            $('#modalDistribucionSubtitle').text('{{ $fecha1 }} — {{ $fecha2 }}');
+            $('#modalDistribucionBody').html(
+                '<tr><td colspan="6" class="text-center py-4">' +
+                '<div class="spinner-border text-primary" role="status"></div>' +
+                '<div class="small text-muted mt-2">Cargando...</div></td></tr>'
+            );
+            $('#modalDistribucionFoot').empty();
+
+            const modal = new bootstrap.Modal(document.getElementById('modalDistribucion'));
+            modal.show();
+
+            $.ajax({
+                url: '{{ route("reporteventa.instancia-detalle") }}',
+                method: 'GET',
+                data: {
+                    codinst: codinst,
+                    fecha1: '{{ $fecha1 }}',
+                    fecha2: '{{ $fecha2 }}',
+                },
+                success: function (res) {
+                    if (!res.detalle || res.detalle.length === 0) {
+                        $('#modalDistribucionBody').html(
+                            '<tr><td colspan="6" class="text-center text-muted py-4">Sin ventas registradas</td></tr>'
+                        );
+                        return;
+                    }
+
+                    let html = '';
+                    res.detalle.forEach(function (r) {
+                        const pctClass = r.utilidad_pct >= 0 ? 'text-success' : 'text-danger';
+                        html += '<tr>' +
+                            '<td class="ps-3 fw-medium">' + r.sucursal + '</td>' +
+                            '<td class="text-center"><span class="badge bg-primary-subtle text-primary">' +
+                            Number(r.cant).toLocaleString('es-VE') + '</span></td>' +
+                            '<td class="text-end">$ ' + Number(r.precioventa).toLocaleString('es-VE', {minimumFractionDigits: 2}) + '</td>' +
+                            '<td class="text-end">$ ' + Number(r.preciod).toLocaleString('es-VE', {minimumFractionDigits: 2}) + '</td>' +
+                            '<td class="text-end fw-semibold ' + pctClass + '">$ ' +
+                            Number(r.resta).toLocaleString('es-VE', {minimumFractionDigits: 2}) + '</td>' +
+                            '<td class="text-end pe-3 fw-semibold ' + pctClass + '">' +
+                            Number(r.utilidad_pct).toFixed(2) + ' %</td>' +
+                            '</tr>';
+                    });
+                    $('#modalDistribucionBody').html(html);
+
+                    const t = res.totales;
+                    $('#modalDistribucionFoot').html(
+                        '<tr>' +
+                        '<td class="ps-3">TOTALES</td>' +
+                        '<td class="text-center">' + Number(t.cant).toLocaleString('es-VE') + '</td>' +
+                        '<td class="text-end">$ ' + Number(t.venta).toLocaleString('es-VE', {minimumFractionDigits: 2}) + '</td>' +
+                        '<td class="text-end">$ ' + Number(t.costo).toLocaleString('es-VE', {minimumFractionDigits: 2}) + '</td>' +
+                        '<td class="text-end text-success">$ ' + Number(t.utilidad).toLocaleString('es-VE', {minimumFractionDigits: 2}) + '</td>' +
+                        '<td class="text-end pe-3">' + Number(t.pct).toFixed(2) + ' %</td>' +
+                        '</tr>'
+                    );
+                },
+                error: function () {
+                    $('#modalDistribucionBody').html(
+                        '<tr><td colspan="6" class="text-center text-danger py-4">Error al cargar datos</td></tr>'
+                    );
+                }
+            });
+        });
     </script>
 
-    <script src="{{ URL::asset('build/js/app.js') }}"></script>
+
 
 @endsection

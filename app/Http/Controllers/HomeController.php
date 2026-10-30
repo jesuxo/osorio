@@ -1645,17 +1645,26 @@ class HomeController extends Controller
     {
         $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
         $arraysucursales = implode(",", $arraysucursales);
-
         $comercialid = session('comercialid') ?: 1;
 
         $codinst = $request->codinst;
-        $fecha1  = $request->fecha1; // d/m/Y
-        $fecha2  = $request->fecha2; // d/m/Y
+        $mes     = $request->mes ?? 0;
 
-        list($d1, $m1, $y1) = explode("/", $fecha1);
-        list($d2, $m2, $y2) = explode("/", $fecha2);
-        $fec1 = "$y1-$m1-$d1";
-        $fec2 = "$y2-$m2-$d2";
+        // Detectar si viene por fechas (desde reporteVentas) o por año/mes (desde anual)
+        if ($request->has('fecha1') && $request->has('fecha2')) {
+            list($d1, $m1, $y1) = explode("/", $request->fecha1);
+            list($d2, $m2, $y2) = explode("/", $request->fecha2);
+            $fec1 = "$y1-$m1-$d1";
+            $fec2 = "$y2-$m2-$d2";
+            $filtroFecha = "f.FechaE BETWEEN '$fec1 00:00:00' AND '$fec2 23:59:59'";
+        } else {
+            $anio = $request->anio ?: date('Y');
+            if ($mes > 0) {
+                $filtroFecha = "YEAR(f.FechaE) = $anio AND MONTH(f.FechaE) = $mes";
+            } else {
+                $filtroFecha = "YEAR(f.FechaE) = $anio";
+            }
+        }
 
         $instancia = Sainsta::select('codinst', 'descrip', 'codalte')
             ->where('codinst', $codinst)
@@ -1666,7 +1675,6 @@ class HomeController extends Controller
             return response()->json(['error' => 'Instancia no encontrada'], 404);
         }
 
-        // Sucursales que tienen venta de esa instancia (o sus hijas)
         $detalle = DB::table('saitemfac as b')
             ->join('safact as f', function ($join) {
                 $join->on('b.fk_sucursal', '=', 'f.fk_sucursal')
@@ -1674,22 +1682,19 @@ class HomeController extends Controller
                     ->on('b.TipoFac', '=', 'f.TipoFac');
             })
             ->join('saprod as d', function ($join) use ($comercialid) {
-                $join->on('d.codprod', '=', 'b.CodItem')
-                    ->where('d.comercial', $comercialid);
+                $join->on('d.codprod', '=', 'b.CodItem')->where('d.comercial', $comercialid);
             })
             ->join('sainsta as e', function ($join) use ($comercialid) {
-                $join->on('e.CodInst', '=', 'd.CodInst')
-                    ->where('e.comercial', $comercialid);
+                $join->on('e.CodInst', '=', 'd.CodInst')->where('e.comercial', $comercialid);
             })
             ->join('sasucursal as s', function ($join) use ($comercialid) {
-                $join->on('s.id', '=', 'b.fk_sucursal')
-                    ->where('s.fk_comercial', $comercialid);
+                $join->on('s.id', '=', 'b.fk_sucursal')->where('s.fk_comercial', $comercialid);
             })
             ->whereIn('f.tipofac', ['Z', 'W'])
             ->where('b.EsServ', 0)
             ->where('b.costodoriginal', '>', 0)
             ->whereRaw("b.fk_sucursal in ($arraysucursales)")
-            ->whereBetween('f.FechaE', ["$fec1 00:00:00", "$fec2 23:59:59"])
+            ->whereRaw($filtroFecha) // <-- Aplicamos el filtro dinámico
             ->whereRaw("e.codalte LIKE CONCAT(?, '%')", [$instancia->codalte])
             ->select([
                 's.id as fk_sucursal',
@@ -1698,7 +1703,6 @@ class HomeController extends Controller
                 DB::raw('SUM(b.costodoriginal * b.Cantidad * f.Signo) as precioventa'),
                 DB::raw('SUM(b.Cantidad * b.preciod * f.Signo) as preciod'),
                 DB::raw('SUM(((b.costodoriginal - b.preciod) * f.Signo) * b.Cantidad) as resta'),
-                DB::raw('SUM(b.costodoriginal * f.Signo * b.Cantidad) as basesuma'),
             ])
             ->groupBy('s.id', 's.descrip')
             ->orderByDesc('cant')
@@ -1719,7 +1723,6 @@ class HomeController extends Controller
                 'sucursal'      => $row->sucursal,
                 'cant'          => (float) $row->cant,
                 'precioventa'   => (float) $row->precioventa,
-                'basesuma'      => (float) $row->basesuma,
                 'preciod'       => (float) $row->preciod,
                 'resta'         => (float) $row->resta,
                 'utilidad_pct'  => $pct,
@@ -1751,9 +1754,7 @@ class HomeController extends Controller
     {
         $arraysucursales = auth()->user()->getSucursalesIdsComercialActual();
         $arraysucursales = implode(",", $arraysucursales);
-
         $comercialid = session('comercialid') ?: 1;
-
         $anio = $request->anio ?: date('Y');
 
         $instancias = Sainsta::selectRaw("Descrip as label, descrip, id, nivel, codinst, codalte")
@@ -1761,17 +1762,16 @@ class HomeController extends Controller
             ->orderBy('descrip', 'asc')
             ->get();
 
+        // Traemos los datos agrupados por mes y por instancia
         $results = DB::table('safact as f')
             ->select([
-                'f.fk_sucursal',
                 'd.codinst',
-                DB::raw('(b.Cantidad*f.signo) as cant'),
-                DB::raw('(b.costodoriginal * b.cantidad * f.signo) as precioventa'),
-                DB::raw('(b.Cantidad*(b.preciod)*f.signo) as preciod'),
-                DB::raw('(((b.costodoriginal - b.preciod) * f.signo) * b.cantidad) as resta'),
-                DB::raw('((b.costodoriginal) * f.signo * b.cantidad) as basesuma'),
+                DB::raw('MONTH(f.FechaE) as mes'),
+                DB::raw('SUM(b.Cantidad * f.signo) as cant'),
+                DB::raw('SUM(b.costodoriginal * b.cantidad * f.signo) as precioventa'),
+                DB::raw('SUM(b.Cantidad * b.preciod * f.signo) as preciod'),
+                DB::raw('SUM(((b.costodoriginal - b.preciod) * f.signo) * b.cantidad) as resta'),
                 'e.codalte',
-                'a.descrip as sucursal',
             ])
             ->join('saitemfac as b', function ($join) {
                 $join->on('b.fk_sucursal', '=', 'f.fk_sucursal')
@@ -1790,24 +1790,16 @@ class HomeController extends Controller
                     ->where('e.TipoIns', '=', 0)
                     ->where('e.comercial', $comercialid);
             })
-            ->join('sasucursal as a', function ($join) use ($comercialid) {
-                $join->on('a.id', '=', 'f.fk_sucursal')
-                    ->where('a.fk_comercial', $comercialid);
-            })
             ->whereIn('f.tipofac', ['Z', 'W'])
             ->whereRaw("f.fk_sucursal in ($arraysucursales)")
             ->whereYear('f.FechaE', $anio)
+            ->groupBy('d.codinst', DB::raw('MONTH(f.FechaE)'), 'e.codalte')
             ->get();
 
         $arrayinsta = [];
-        $sucursales  = [];
-        $detallePorInstancia = [];
 
+        // Inicializar la estructura de 12 meses en 0
         foreach ($results as $venta) {
-            if (!isset($sucursales[$venta->fk_sucursal])) {
-                $sucursales[$venta->fk_sucursal] = $venta->sucursal;
-            }
-
             foreach ($instancias as $instancia) {
                 $len = strlen($instancia->codalte);
                 if (substr($venta->codalte, 0, $len) == $instancia->codalte) {
@@ -1815,33 +1807,36 @@ class HomeController extends Controller
 
                     if (!isset($arrayinsta[$key])) {
                         $arrayinsta[$key] = [
-                            'descrip'     => $instancia->descrip,
-                            'codalte'     => $instancia->codalte,
-                            'cant'        => 0,
-                            'resta'       => 0,
-                            'preciod'     => 0,
-                            'basesuma'    => 0,
-                            'precioventa' => 0,
+                            'codinst' => $key,
+                            'descrip' => $instancia->descrip,
+                            'codalte' => $instancia->codalte,
+                            'meses'   => array_fill(1, 12, 0), // Array del 1 al 12
+                            'total'   => 0,
                         ];
                     }
 
-                    $arrayinsta[$key]['cant']        += $venta->cant;
-                    $arrayinsta[$key]['resta']       += $venta->resta;
-                    $arrayinsta[$key]['preciod']     += $venta->preciod;
-                    $arrayinsta[$key]['basesuma']    += $venta->basesuma;
-                    $arrayinsta[$key]['precioventa'] += $venta->precioventa;
-
-                    if (!isset($detallePorInstancia[$key][$venta->fk_sucursal])) {
-                        $detallePorInstancia[$key][$venta->fk_sucursal] = 0;
-                    }
-                    $detallePorInstancia[$key][$venta->fk_sucursal] += $venta->cant;
+                    $arrayinsta[$key]['meses'][$venta->mes] += $venta->cant;
+                    $arrayinsta[$key]['total'] += $venta->cant;
                 }
             }
         }
 
-        return view('reporteVentasAnual', compact(
-            'arrayinsta', 'sucursales', 'detallePorInstancia', 'anio'
-        ));
+        // Ordenar por total descendente
+        uasort($arrayinsta, function($a, $b) {
+            return $b['total'] <=> $a['total'];
+        });
+
+        // Calcular totales por mes para el pie de la tabla
+        $totalesMes = array_fill(1, 12, 0);
+        $granTotal = 0;
+        foreach ($arrayinsta as $row) {
+            for ($i = 1; $i <= 12; $i++) {
+                $totalesMes[$i] += $row['meses'][$i];
+            }
+            $granTotal += $row['total'];
+        }
+
+        return view('reporteVentasAnual', compact('arrayinsta', 'totalesMes', 'granTotal', 'anio'));
     }
 
     public function reporteventasucu(Request $request)

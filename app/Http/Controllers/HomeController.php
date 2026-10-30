@@ -1762,15 +1762,12 @@ class HomeController extends Controller
             ->orderBy('descrip', 'asc')
             ->get();
 
-        // Traemos los datos agrupados por mes y por instancia
         $results = DB::table('safact as f')
             ->select([
                 'd.codinst',
                 DB::raw('MONTH(f.FechaE) as mes'),
                 DB::raw('SUM(b.Cantidad * f.signo) as cant'),
                 DB::raw('SUM(b.costodoriginal * b.cantidad * f.signo) as precioventa'),
-                DB::raw('SUM(b.Cantidad * b.preciod * f.signo) as preciod'),
-                DB::raw('SUM(((b.costodoriginal - b.preciod) * f.signo) * b.cantidad) as resta'),
                 'e.codalte',
             ])
             ->join('saitemfac as b', function ($join) {
@@ -1782,13 +1779,11 @@ class HomeController extends Controller
                     ->where('b.costodoriginal', '>', 0);
             })
             ->join('saprod as d', function ($join) use ($comercialid) {
-                $join->on('d.codprod', '=', 'b.coditem')
-                    ->where('d.comercial', $comercialid);
+                $join->on('d.codprod', '=', 'b.coditem')->where('d.comercial', $comercialid);
             })
             ->join('sainsta as e', function ($join) use ($comercialid) {
                 $join->on('e.CodInst', '=', 'd.CodInst')
-                    ->where('e.TipoIns', '=', 0)
-                    ->where('e.comercial', $comercialid);
+                    ->where('e.TipoIns', '=', 0)->where('e.comercial', $comercialid);
             })
             ->whereIn('f.tipofac', ['Z', 'W'])
             ->whereRaw("f.fk_sucursal in ($arraysucursales)")
@@ -1798,7 +1793,6 @@ class HomeController extends Controller
 
         $arrayinsta = [];
 
-        // Inicializar la estructura de 12 meses en 0
         foreach ($results as $venta) {
             foreach ($instancias as $instancia) {
                 $len = strlen($instancia->codalte);
@@ -1810,33 +1804,41 @@ class HomeController extends Controller
                             'codinst' => $key,
                             'descrip' => $instancia->descrip,
                             'codalte' => $instancia->codalte,
-                            'meses'   => array_fill(1, 12, 0), // Array del 1 al 12
-                            'total'   => 0,
+                            'meses'   => array_fill(1, 12, ['cant' => 0, 'venta' => 0]), // Guardamos ambos
+                            'total_cant'  => 0,
+                            'total_venta' => 0,
                         ];
                     }
 
-                    $arrayinsta[$key]['meses'][$venta->mes] += $venta->cant;
-                    $arrayinsta[$key]['total'] += $venta->cant;
+                    $arrayinsta[$key]['meses'][$venta->mes]['cant']  += $venta->cant;
+                    $arrayinsta[$key]['meses'][$venta->mes]['venta'] += $venta->precioventa;
+
+                    $arrayinsta[$key]['total_cant']  += $venta->cant;
+                    $arrayinsta[$key]['total_venta'] += $venta->precioventa;
                 }
             }
         }
 
-        // Ordenar por total descendente
+        // Ordenar por total de venta descendente
         uasort($arrayinsta, function($a, $b) {
-            return $b['total'] <=> $a['total'];
+            return $b['total_venta'] <=> $a['total_venta'];
         });
 
-        // Calcular totales por mes para el pie de la tabla
-        $totalesMes = array_fill(1, 12, 0);
-        $granTotal = 0;
+        // Calcular totales por mes para el pie
+        $totalesMes = array_fill(1, 12, ['cant' => 0, 'venta' => 0]);
+        $granTotalCant = 0;
+        $granTotalVenta = 0;
+
         foreach ($arrayinsta as $row) {
             for ($i = 1; $i <= 12; $i++) {
-                $totalesMes[$i] += $row['meses'][$i];
+                $totalesMes[$i]['cant']  += $row['meses'][$i]['cant'];
+                $totalesMes[$i]['venta'] += $row['meses'][$i]['venta'];
             }
-            $granTotal += $row['total'];
+            $granTotalCant  += $row['total_cant'];
+            $granTotalVenta += $row['total_venta'];
         }
 
-        return view('reporteVentasAnual', compact('arrayinsta', 'totalesMes', 'granTotal', 'anio'));
+        return view('reporteVentasAnual', compact('arrayinsta', 'totalesMes', 'granTotalCant', 'granTotalVenta', 'anio'));
     }
 
     public function reporteventasucu(Request $request)

@@ -6,7 +6,10 @@
         .table-anual th, .table-anual td { white-space: nowrap; }
         .mes-cell { cursor: pointer; transition: background-color 0.2s; }
         .mes-cell:hover { background-color: #f0f7ff !important; }
-        .table-anual tbody tr:hover { background-color: #f8f9fa; }
+
+        /* Ocultar/Mostrar columnas según el modo */
+        .table-anual.view-cant .col-monto { display: none !important; }
+        .table-anual.view-monto .col-cant { display: none !important; }
     </style>
 @endsection
 
@@ -19,18 +22,29 @@
                         <h4 class="card-title mb-0" style="color: #fff !important;">Reporte de Ventas Anual</h4>
                         <p class="text-white-50 mb-0 small">Año {{ $anio }} — Matriz Mensual de Instancias</p>
                     </div>
-                    <form method="get" action="{{ route('reporteventa.anual') }}" class="d-flex gap-2">
-                        <select name="anio" class="form-select form-select-sm border-0" onchange="this.form.submit()">
-                            @for($y = date('Y'); $y >= date('Y') - 5; $y--)
-                                <option value="{{ $y }}" {{ $y == $anio ? 'selected' : '' }}>{{ $y }}</option>
-                            @endfor
-                        </select>
-                    </form>
+                    <div class="d-flex gap-3 align-items-center">
+                        <!-- Switch de Vista -->
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="viewtype" id="viewCant" value="cant" checked onchange="cambiarVista('cant')">
+                            <label class="btn btn-outline-light" for="viewCant">Cantidades</label>
+
+                            <input type="radio" class="btn-check" name="viewtype" id="viewMonto" value="monto" onchange="cambiarVista('monto')">
+                            <label class="btn btn-outline-light" for="viewMonto">Montos ($)</label>
+                        </div>
+
+                        <form method="get" action="{{ route('reporteventa.anual') }}" class="d-flex gap-2 mb-0">
+                            <select name="anio" class="form-select form-select-sm border-0" onchange="this.form.submit()">
+                                @for($y = date('Y'); $y >= date('Y') - 5; $y--)
+                                    <option value="{{ $y }}" {{ $y == $anio ? 'selected' : '' }}>{{ $y }}</option>
+                                @endfor
+                            </select>
+                        </form>
+                    </div>
                 </div>
 
                 <div class="card-body p-0">
                     <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
-                        <table class="table table-hover table-anual align-middle mb-0 text-center" style="font-size: 13px;">
+                        <table class="table table-hover table-anual align-middle mb-0 text-center view-cant" id="tablaAnual" style="font-size: 13px;">
                             <thead class="table-light sticky-top">
                             <tr class="text-uppercase small fw-semibold text-muted">
                                 <th class="ps-3 text-start" style="min-width: 200px;">Instancia</th>
@@ -43,24 +57,38 @@
                             </thead>
                             <tbody>
                             @forelse($arrayinsta as $key => $row)
-                                @if($row['total'] != 0)
+                                @if($row['total_cant'] != 0)
                                     <tr>
                                         <td class="ps-3 text-start fw-medium">{{ $row['descrip'] }}</td>
 
                                         {{-- Columnas de Meses --}}
                                         @for($i = 1; $i <= 12; $i++)
+                                            @php
+                                                $cant  = $row['meses'][$i]['cant'];
+                                                $venta = $row['meses'][$i]['venta'];
+                                            @endphp
                                             <td class="mes-cell"
                                                 data-codinst="{{ $key }}"
                                                 data-descrip="{{ $row['descrip'] }}"
                                                 data-mes="{{ $i }}"
                                                 title="Ver sucursales de {{ $row['descrip'] }} en {{ date('F', mktime(0,0,0,$i,1)) }}">
-                                                {{ $row['meses'][$i] > 0 ? number_format($row['meses'][$i], 0, ',', '.') : '-' }}
+
+                                                {{-- Valor Cantidad --}}
+                                                <span class="col-cant">
+                                        {{ $cant > 0 ? number_format($cant, 0, ',', '.') : '-' }}
+                                    </span>
+
+                                                {{-- Valor Monto --}}
+                                                <span class="col-monto">
+                                        {{ $venta > 0 ? '$' . number_format($venta, 2, ',', '.') : '-' }}
+                                    </span>
                                             </td>
                                         @endfor
 
                                         {{-- Total Anual --}}
                                         <td class="text-end fw-bold text-primary bg-light">
-                                            {{ number_format($row['total'], 0, ',', '.') }}
+                                            <span class="col-cant">{{ number_format($row['total_cant'], 0, ',', '.') }}</span>
+                                            <span class="col-monto">$ {{ number_format($row['total_venta'], 2, ',', '.') }}</span>
                                         </td>
 
                                         {{-- Botón Ver Todo el Año --}}
@@ -84,9 +112,15 @@
                             <tr>
                                 <td class="ps-3 text-start">TOTALES</td>
                                 @for($i = 1; $i <= 12; $i++)
-                                    <td>{{ $totalesMes[$i] > 0 ? number_format($totalesMes[$i], 0, ',', '.') : '-' }}</td>
+                                    <td>
+                                        <span class="col-cant">{{ $totalesMes[$i]['cant'] > 0 ? number_format($totalesMes[$i]['cant'], 0, ',', '.') : '-' }}</span>
+                                        <span class="col-monto">{{ $totalesMes[$i]['venta'] > 0 ? '$' . number_format($totalesMes[$i]['venta'], 2, ',', '.') : '-' }}</span>
+                                    </td>
                                 @endfor
-                                <td class="text-end text-primary fs-6">{{ number_format($granTotal, 0, ',', '.') }}</td>
+                                <td class="text-end text-primary fs-6">
+                                    <span class="col-cant">{{ number_format($granTotalCant, 0, ',', '.') }}</span>
+                                    <span class="col-monto">$ {{ number_format($granTotalVenta, 2, ',', '.') }}</span>
+                                </td>
                                 <td></td>
                             </tr>
                             </tfoot>
@@ -97,7 +131,7 @@
         </div>
     </div>
 
-    <!-- Modal: Distribución por Sucursal (Reutilizado) -->
+    <!-- Modal: Distribución por Sucursal -->
     <div class="modal fade" id="modalDistribucion" tabindex="-1" aria-hidden="true" data-bs-backdrop="true" data-bs-keyboard="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" style="margin-top: 80px;">
             <div class="modal-content border-0 shadow">
@@ -139,10 +173,22 @@
 @section('scripts')
     <script src="{{ URL::asset('build/js/app.js') }}"></script>
     <script>
+        // Función para cambiar la vista
+        function cambiarVista(tipo) {
+            const tabla = document.getElementById('tablaAnual');
+            if (tipo === 'cant') {
+                tabla.classList.remove('view-monto');
+                tabla.classList.add('view-cant');
+            } else {
+                tabla.classList.remove('view-cant');
+                tabla.classList.add('view-monto');
+            }
+        }
+
         $(document).on('click', '.mes-cell, .btn-ver-detalle', function () {
             const codinst = $(this).data('codinst');
             const descrip = $(this).data('descrip');
-            const mes     = $(this).data('mes') || 0; // 0 = Todo el año
+            const mes     = $(this).data('mes') || 0;
 
             let tituloMes = mes > 0 ? ` - ${getMesNombre(mes)}` : ' - Todo el Año';
             $('#modalDistribucionTitle').text('Distribución: ' + descrip + tituloMes);
@@ -158,12 +204,7 @@
             const scrollActual = window.scrollY;
             const modalEl = document.getElementById('modalDistribucion');
 
-            $('body').css({
-                position: 'fixed',
-                top: -scrollActual + 'px',
-                width: '100%',
-                overflow: 'hidden'
-            });
+            $('body').css({ position: 'fixed', top: -scrollActual + 'px', width: '100%', overflow: 'hidden' });
 
             const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
@@ -174,15 +215,10 @@
                 modalEl.removeEventListener('hidden.bs.modal', handler);
             }, { once: true });
 
-            // AJAX a la misma ruta, pero le pasamos el año y el mes
             $.ajax({
                 url: '{{ route("reporteventa.instancia-detalle") }}',
                 method: 'GET',
-                data: {
-                    codinst: codinst,
-                    anio: '{{ $anio }}',
-                    mes: mes
-                },
+                data: { codinst: codinst, anio: '{{ $anio }}', mes: mes },
                 success: function (res) {
                     if (!res.detalle || res.detalle.length === 0) {
                         $('#modalDistribucionBody').html('<tr><td colspan="4" class="text-center text-muted py-4">Sin ventas registradas</td></tr>');

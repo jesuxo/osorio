@@ -270,6 +270,44 @@
                         </div>
                     </div>
                 </div>
+                <div class="modal fade" id="modalDistribucion" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content border-0 shadow">
+                            <div class="modal-header bg-primary text-white">
+                                <div>
+                                    <h5 class="modal-title mb-0" id="modalDistribucionTitle">Distribución por Sucursal</h5>
+                                    <small class="text-white-50" id="modalDistribucionSubtitle"></small>
+                                </div>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover align-middle mb-0">
+                                        <thead class="table-light small text-uppercase text-muted">
+                                        <tr>
+                                            <th class="ps-3">Sucursal</th>
+                                            <th class="text-center">Cantidad</th>
+                                            <th class="text-end">Total Venta</th>
+                                            <th class="text-end">Total Costo</th>
+                                            <th class="text-end">Utilidad</th>
+                                            <th class="text-end pe-3">% Utilidad</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody id="modalDistribucionBody">
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4">
+                                                <div class="spinner-border text-primary" role="status"></div>
+                                                <div class="small text-muted mt-2">Cargando...</div>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                        <tfoot class="table-light fw-semibold" id="modalDistribucionFoot"></tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="col-md-6 mt-3">
                 <table width="100%" border="0" class=" table table-borderless table-centered align-middle table-nowrap mb-0 " style="  color:#333; ">
@@ -361,45 +399,6 @@
             </div>
         </div>
 
-    <!-- Modal: distribución por sucursal -->
-    <div class="modal fade" id="modalDistribucion" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-primary text-white">
-                    <div>
-                        <h5 class="modal-title mb-0" id="modalDistribucionTitle">Distribución por Sucursal</h5>
-                        <small class="text-white-50" id="modalDistribucionSubtitle"></small>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-                <div class="modal-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover align-middle mb-0">
-                            <thead class="table-light small text-uppercase text-muted">
-                            <tr>
-                                <th class="ps-3">Sucursal</th>
-                                <th class="text-center">Cantidad</th>
-                                <th class="text-end">Total Venta</th>
-                                <th class="text-end">Total Costo</th>
-                                <th class="text-end">Utilidad</th>
-                                <th class="text-end pe-3">% Utilidad</th>
-                            </tr>
-                            </thead>
-                            <tbody id="modalDistribucionBody">
-                            <tr>
-                                <td colspan="6" class="text-center py-4">
-                                    <div class="spinner-border text-primary" role="status"></div>
-                                    <div class="small text-muted mt-2">Cargando...</div>
-                                </td>
-                            </tr>
-                            </tbody>
-                            <tfoot class="table-light fw-semibold" id="modalDistribucionFoot"></tfoot>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
 
 @endsection

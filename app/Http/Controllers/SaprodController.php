@@ -1334,13 +1334,18 @@ class SaprodController extends Controller
 
                 if(!$request->exdecimal)
                     $producto->exdecimal = 0;
+
                 if(!$request->activo)
                     $producto->activo = 0;
+
                 if(!$request->esexento)
                     $producto->esexento = 0;
 
                 if($producto->comercial == 1)
                     $producto->esexento = 1;
+
+                if(!$producto->preciodolarfijo)
+                    $producto->preciodolarfijo = 0;
 
                 $producto->save();
 

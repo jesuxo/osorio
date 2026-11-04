@@ -122,7 +122,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="row ">
+                        <div class="row " style="display: none">
                             <div class="col-lg-4">
                                 <div class="mb-3">
                                     <label class="form-label" for="peso">Peso</label>

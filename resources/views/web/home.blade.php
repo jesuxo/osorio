@@ -206,24 +206,26 @@
                     </a>
                 </div>
             </div>
+
+            <div class="slide" style="background-image: url({{ URL::asset('build/images/teamcf.jpg') }});">
+                <div class="slide-content">
+                    <h2 style="color: white!important;">CFMOTO Team  </h2>
+                    <h2> Amigos Moteros</h2>
+
+                    <p>Deseas ser parte? Con gusto todo gusto te incluimos</p>
+                    <a href="#" class="btn-banner">Conócenos </a>
+                </div>
+            </div>
             <!--
-            <div class="slide" style="background-image: url({{ URL::asset('build/images/cflite.png') }});">
-                <div class="slide-content">
-                    <h2>Espíritu de Aventura</h2>
-                    <p>Explora cualquier terreno sin límites. Equipada para las rutas más exigentes.</p>
-                    <a href="#" class="btn-banner">Explorar Modelos</a>
-                </div>
-            </div>
+                        <div class="slide" style="background-image: url('https://unsplash.com');">
+                            <div class="slide-content">
+                                <h2>Accesorios & Cascos</h2>
+                                <p>Equípate con lo mejor en seguridad y estilo. Descuentos de temporada.</p>
+                                <a href="#" class="btn-banner">Ir a Tienda</a>
+                            </div>
+                        </div>
 
-            <div class="slide" style="background-image: url('https://unsplash.com');">
-                <div class="slide-content">
-                    <h2>Accesorios & Cascos</h2>
-                    <p>Equípate con lo mejor en seguridad y estilo. Descuentos de temporada.</p>
-                    <a href="#" class="btn-banner">Ir a Tienda</a>
-                </div>
-            </div>
-
-            -->
+                        -->
         </div>
 
         <!-- Puntos Inferiores -->

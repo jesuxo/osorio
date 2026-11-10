@@ -369,7 +369,7 @@
 
                 <div class="row g-4">
                     @foreach($motosDestacadas as $moto)
-                        @php $precio = (float) ($moto->preciod ?? 0); @endphp
+                        @php $precio = (float) ($moto->costod3 ?? 0); @endphp
                         <div class="col-lg-3 col-md-4 col-6">
                             <div class="card-producto h-100 d-flex flex-column"> <!--{ { route('web.producto', $moto->codprod) }}-->
                                 <a href="#"

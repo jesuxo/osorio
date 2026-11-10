@@ -7,7 +7,7 @@
         <div class="row g-4">
             @foreach($motos as $moto)
                 @php
-                    $precio = (float) ($moto->preciod ?? 0);
+                    $precio = (float) ($moto->costod3 ?? 0);
                 @endphp
                 <div class="col-6 col-md-4">
                     <div class="card-producto h-100 d-flex flex-column">

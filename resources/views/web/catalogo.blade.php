@@ -51,8 +51,8 @@
                                     <small class="text-secondary">{{ $p->marca }}</small>
                                     <h6 class="fw-bold mb-2" style="font-size: .9rem;">{{ $p->descrip }}</h6>
                                     <small class="text-secondary d-block mb-2">Código: {{ $p->codprod }}</small>
-                                    @if($p->preciod > 0)
-                                        <p class="fw-bold mb-2" style="color: var(--cf-teal);">${{ number_format($p->preciod, 2) }}</p>
+                                    @if($p->costod3 > 0)
+                                        <p class="fw-bold mb-2" style="color: var(--cf-teal);">${{ number_format($p->costod3, 2) }}</p>
                                     @endif
                                     <div class="d-flex gap-2">
                                         <a href="{{ route('web.producto', $p->codprod) }}" class="btn btn-cf-outline btn-sm flex-grow-1">Ver</a>

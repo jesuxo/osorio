@@ -152,40 +152,49 @@ class SaprovController extends Controller
 
     public function productosPanel($codprov, Request $request)
     {
-        $comercial  = session('comercialid') ;
+        $comercial  = session('comercialid');
         if(!$comercial) {
             session(['comercialid' => 1]);
             $comercial = 1;
         }
 
-        // Obtener fechas del request o usar valores por defecto (últimos 3 meses)
         $fecha_desde = $request->fecha_desde ?? date('Y-m-d', strtotime('-3 months'));
         $fecha_hasta = $request->fecha_hasta ?? date('Y-m-d');
         $orden       = $request->orden ?? 'vendido_desc';
         $filtro      = $request->filtro ?? 'todos';
 
-        // Obtener información del proveedor
-        $proveedor = Saprov::where('codprov', $codprov)->first();
+        // ============================================================
+        // NUEVO: compras seleccionadas (array de IDs de sacomp)
+        // ============================================================
+        $compras_ids = $request->compras_ids ?? [];
+        if (is_string($compras_ids)) {
+            $compras_ids = array_filter(explode(',', $compras_ids));
+        }
+        $compras_ids = array_map('intval', (array) $compras_ids);
 
+        $proveedor = Saprov::where('codprov', $codprov)->first();
         if (!$proveedor) {
             return redirect()->route('proveedores.index')->with('error', 'Proveedor no encontrado');
         }
 
-        $comprasData = $this->getComprasProveedor($codprov, $request,10);
+        // Listado de compras para el selector (sin límite de 50)
+        $comprasSelector = $this->getComprasParaSelector($codprov, $fecha_desde, $fecha_hasta);
+
+        $comprasData = $this->getComprasProveedor($codprov, $request, 10);
         $compras = $comprasData['compras'];
 
-        // Obtener todos los productos de este proveedor
-        $productos = $this->getProductosProveedor($codprov, $fecha_desde, $fecha_hasta, $orden, $filtro);
+        $productos = $this->getProductosProveedor(
+            $codprov, $fecha_desde, $fecha_hasta, $orden, $filtro, $compras_ids
+        );
 
-        // Calcular KPI generales
-        $kpi = $this->calcularKPIProveedor($codprov, $fecha_desde, $fecha_hasta);
+        $kpi = $this->calcularKPIProveedor($codprov, $fecha_desde, $fecha_hasta, $compras_ids);
 
-        // Top productos más vendidos
-        $top_productos = $this->getTopProductos($codprov, $fecha_desde, $fecha_hasta, 10);
+        $top_productos = $this->getTopProductos(
+            $codprov, $fecha_desde, $fecha_hasta, 10, $compras_ids
+        );
 
         $sucursales = Sasucursal::where('fk_comercial', $comercial)->get();
 
-        // === KPI Cuentas por Pagar del proveedor ===
         $cxpKpi = Cwcxcprv::where('codprov', $codprov)
             ->where('signo', 1)
             ->whereRaw('(monto - abonado) > 0')
@@ -217,8 +226,107 @@ class SaprovController extends Controller
             'top_productos',
             'compras',
             'sucursales',
-            'cxpKpi'
+            'cxpKpi',
+            'compras_ids',           // <-- NUEVO
+            'comprasSelector'        // <-- NUEVO
         ));
+    }
+
+    /**
+     * Devuelve todas las compras del proveedor en el período para el selector múltiple.
+     * Cada compra con: id, numerod, tipocom, fechae, sucursal, total_items, monto
+     */
+    private function getComprasParaSelector($codprov, $fecha_desde, $fecha_hasta)
+    {
+        $comercial = session('comercialid') ?: 1;
+        $sucursalIds = Sasucursal::where('fk_comercial', $comercial)->pluck('id')->toArray();
+        $sucursalStr = implode(',', $sucursalIds);
+
+        $compras = Sacomp::selectRaw('id, codprov, numerod, tipocom, fk_sucursal, fechae, created_at')
+            ->where('codprov', $codprov)
+            ->whereIn('tipocom', ['U', 'Y'])
+            ->whereRaw("fk_sucursal in ($sucursalStr)")
+            ->whereBetween('fechae', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
+            ->with(['sucursal:id,descrip'])
+            ->orderBy('fechae', 'desc')
+            ->get();
+
+        if ($compras->isEmpty()) {
+            return collect([]);
+        }
+
+        // Traer agregados de items por compra (una sola query)
+        // La clave de join entre sacomp y saitemcom es (tipocom, numerod, fk_sucursal)
+        $keys = $compras->map(fn($c) => "{$c->tipocom}|{$c->numerod}|{$c->fk_sucursal}")->unique()->values();
+
+        $itemsAgg = Saitemcom::where('codprov', $codprov)
+            ->whereRaw("fk_sucursal in ($sucursalStr)")
+            ->whereIn('tipocom', ['U', 'Y'])
+            ->whereBetween('fechae', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
+            ->selectRaw('tipocom, numerod, fk_sucursal,
+                     COUNT(DISTINCT coditem) as total_items,
+                     SUM(cantidad * signo) as unidades,
+                     SUM(preciod * cantidad * signo) as monto')
+            ->groupBy('tipocom', 'numerod', 'fk_sucursal')
+            ->get()
+            ->keyBy(fn($r) => "{$r->tipocom}|{$r->numerod}|{$r->fk_sucursal}");
+
+        return $compras->map(function ($c) use ($itemsAgg) {
+            $key = "{$c->tipocom}|{$c->numerod}|{$c->fk_sucursal}";
+            $agg = $itemsAgg->get($key);
+            return [
+                'id'           => $c->id,
+                'numerod'      => $c->numerod,
+                'tipocom'      => $c->tipocom,
+                'tipo_texto'   => $c->tipocom === 'U' ? 'Compra' : 'Devolución',
+                'fechae'       => $c->fechae,
+                'fecha_fmt'    => Carbon::parse($c->fechae)->format('d/m/Y'),
+                'sucursal'     => $c->sucursal->descrip ?? 'N/A',
+                'total_items'  => (int)   ($agg->total_items ?? 0),
+                'unidades'     => (float) ($agg->unidades ?? 0),
+                'monto'        => (float) ($agg->monto ?? 0),
+            ];
+        });
+    }
+
+    /**
+     * Devuelve los códigos de producto (coditem) que aparecen en las compras seleccionadas.
+     * Si $compras_ids viene vacío, devuelve null (sin filtro).
+     *
+     * $compras_ids son IDs de sacomp, pero la relación con saitemcom es por
+     * (tipocom, numerod, fk_sucursal). Resolvemos primero esas claves.
+     */
+    private function getCoditemsFiltradosPorCompras($codprov, array $compras_ids, $sucursalIds)
+    {
+        if (empty($compras_ids)) {
+            return null;
+        }
+
+        // 1) Resolver las claves (tipocom, numerod, fk_sucursal) de las compras seleccionadas
+        $compras = Sacomp::whereIn('id', $compras_ids)
+            ->where('codprov', $codprov)
+            ->get(['tipocom', 'numerod', 'fk_sucursal']);
+
+        if ($compras->isEmpty()) {
+            return []; // filtro activo pero sin compras válidas → sin productos
+        }
+
+        // 2) Buscar los coditem presentes en saitemcom para esas claves
+        $query = Saitemcom::where('codprov', $codprov)
+            ->whereRaw("fk_sucursal in ($sucursalIds)")
+            ->whereIn('tipocom', ['U', 'Y']);
+
+        $query->where(function ($q) use ($compras) {
+            foreach ($compras as $c) {
+                $q->orWhere(function ($sub) use ($c) {
+                    $sub->where('tipocom', $c->tipocom)
+                        ->where('numerod', $c->numerod)
+                        ->where('fk_sucursal', $c->fk_sucursal);
+                });
+            }
+        });
+
+        return $query->distinct()->pluck('coditem')->toArray();
     }
 
     /**
@@ -496,7 +604,7 @@ class SaprovController extends Controller
     /**
      * Obtener productos del proveedor con estadísticas
      */
-    private function getProductosProveedor($codprov, $fecha_desde, $fecha_hasta, $orden, $filtro = 'todos')
+    private function getProductosProveedor($codprov, $fecha_desde, $fecha_hasta, $orden, $filtro = 'todos', array $compras_ids = [])
     {
         $comercial = session('comercialid');
         if (!$comercial) {
@@ -508,12 +616,25 @@ class SaprovController extends Controller
         $sucursalarr = $sucursales->pluck('id');
         $sucursalIds = implode(",", $sucursalarr->toArray());
 
-        $codigos_productos = Saitemcom::where('codprov', $codprov)
-            ->whereRaw("fk_sucursal in ($sucursalIds)")
-            ->whereIn('tipocom', ['U', 'Y'])
-            ->distinct()
-            ->pluck('coditem')
-            ->toArray();
+        // ============================================================
+        // FILTRO POR COMPRAS SELECCIONADAS
+        // ============================================================
+        $coditemsFiltrados = $this->getCoditemsFiltradosPorCompras($codprov, $compras_ids, $sucursalIds);
+
+        // Si el filtro está activo, restringimos la base de productos
+        if ($coditemsFiltrados !== null) {
+            if (empty($coditemsFiltrados)) {
+                return collect([]);
+            }
+            $codigos_productos = $coditemsFiltrados;
+        } else {
+            $codigos_productos = Saitemcom::where('codprov', $codprov)
+                ->whereRaw("fk_sucursal in ($sucursalIds)")
+                ->whereIn('tipocom', ['U', 'Y'])
+                ->distinct()
+                ->pluck('coditem')
+                ->toArray();
+        }
 
         if (empty($codigos_productos)) {
             return collect([]);
@@ -560,11 +681,22 @@ class SaprovController extends Controller
             $producto->margen   = $costo > 0 ? (($precioVenta - $costo) / $costo) * 100 : 0;
 
             // ===== COMPRAS =====
+            // Reemplazar en getProductosProveedor:
             $producto->total_compras = Saitemcom::where('coditem', $producto->codprod)
                 ->whereRaw("fk_sucursal in ($sucursalIds)")
                 ->where('codprov', $codprov)
                 ->whereIn('tipocom', ['U', 'Y'])
                 ->whereBetween('fechae', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:59.00'])
+                ->when(!empty($compras_ids), function ($q) use ($compras_ids, $codprov) {
+                    $compras = Sacomp::whereIn('id', $compras_ids)->where('codprov', $codprov)->get(['tipocom', 'numerod', 'fk_sucursal']);
+                    $q->where(function ($sub) use ($compras) {
+                        foreach ($compras as $c) {
+                            $sub->orWhere(function ($s) use ($c) {
+                                $s->where('tipocom', $c->tipocom)->where('numerod', $c->numerod)->where('fk_sucursal', $c->fk_sucursal);
+                            });
+                        }
+                    });
+                })
                 ->select(DB::raw('SUM(preciod * cantidad * signo) as total'))
                 ->value('total') ?? 0;
 
@@ -573,6 +705,16 @@ class SaprovController extends Controller
                 ->whereRaw("fk_sucursal in ($sucursalIds)")
                 ->whereIn('tipocom', ['U', 'Y'])
                 ->whereBetween('fechae', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:59.00'])
+                ->when(!empty($compras_ids), function ($q) use ($compras_ids, $codprov) {
+                    $compras = Sacomp::whereIn('id', $compras_ids)->where('codprov', $codprov)->get(['tipocom', 'numerod', 'fk_sucursal']);
+                    $q->where(function ($sub) use ($compras) {
+                        foreach ($compras as $c) {
+                            $sub->orWhere(function ($s) use ($c) {
+                                $s->where('tipocom', $c->tipocom)->where('numerod', $c->numerod)->where('fk_sucursal', $c->fk_sucursal);
+                            });
+                        }
+                    });
+                })
                 ->select(DB::raw('SUM(cantidad * signo) as total'))
                 ->value('total') ?? 0;
 
@@ -794,7 +936,7 @@ class SaprovController extends Controller
     /**
      * Calcular KPI generales del proveedor
      */
-    private function calcularKPIProveedor($codprov, $fecha_desde, $fecha_hasta)
+    private function calcularKPIProveedor($codprov, $fecha_desde, $fecha_hasta, array $compras_ids = [])
     {
         $serialesCompra = [];
         $comercial = session('comercialid');
@@ -1236,7 +1378,7 @@ class SaprovController extends Controller
     /**
      * Obtener top productos más vendidos
      */
-    private function getTopProductos($codprov, $fecha_desde, $fecha_hasta, $limite = 10)
+    private function getTopProductos($codprov, $fecha_desde, $fecha_hasta, $limite = 10, array $compras_ids = [])
     {
         $comercial = session('comercialid');
         if (!$comercial) {
@@ -1248,12 +1390,16 @@ class SaprovController extends Controller
         $sucursalarr = $sucursales->pluck('id');
         $sucursalIds = implode(",", $sucursalarr->toArray());
 
-        $codigos_productos = Saitemcom::where('codprov', $codprov)
-            ->whereRaw("fk_sucursal in ($sucursalIds)")
-            ->whereIn('tipocom', ['U', 'Y'])
-            ->distinct()
-            ->pluck('coditem')
-            ->toArray();
+        $coditemsFiltrados = $this->getCoditemsFiltradosPorCompras($codprov, $compras_ids, $sucursalIds);
+        if ($coditemsFiltrados !== null) {
+            $codigos_productos = $coditemsFiltrados;
+        } else {
+            $codigos_productos = Saitemcom::where('codprov', $codprov)
+                ->whereRaw("fk_sucursal in ($sucursalIds)")
+                ->whereIn('tipocom', ['U', 'Y'])
+                ->distinct()->pluck('coditem')->toArray();
+        }
+
 
         if (empty($codigos_productos)) {
             return collect([]);

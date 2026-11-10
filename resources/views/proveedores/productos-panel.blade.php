@@ -161,17 +161,21 @@
 
             <!-- Filtros -->
             <div class="filtros-panel">
-                <form method="GET" action="{{ route('proveedores.productos-panel', $proveedor->codprov) }}" class="row g-3">
+                <form method="GET" action="{{ route('proveedores.productos-panel', $proveedor->codprov) }}" class="row g-3" id="filtrosForm">
                     <input type="hidden" name="filtro" value="{{ $filtro ?? 'todos' }}">
-                    <div class="col-md-3">
+
+                    {{-- Compras seleccionadas: se envían como compras_ids[] --}}
+                    <div id="comprasIdsContainer"></div>
+
+                    <div class="col-md-2">
                         <label class="form-label">Fecha Desde</label>
                         <input type="date" name="fecha_desde" class="form-control" value="{{ $fecha_desde }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Fecha Hasta</label>
                         <input type="date" name="fecha_hasta" class="form-control" value="{{ $fecha_hasta }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Ordenar por</label>
                         <select name="orden" class="form-select">
                             <option value="vendido_desc" {{ $orden == 'vendido_desc' ? 'selected' : '' }}>Más Vendido</option>
@@ -184,7 +188,16 @@
                             <option value="rentabilidad_desc" {{ $orden == 'rentabilidad_desc' ? 'selected' : '' }}>Mayor Rentabilidad</option>
                         </select>
                     </div>
-                    <div class="col-md-3 d-flex align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label">Compras a analizar</label>
+                        <button type="button" class="btn btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#selectorComprasModal">
+                            <i class="ri-shopping-cart-2-line"></i>
+                            <span id="comprasSelectedCount">
+                    {{ count($compras_ids ?? []) > 0 ? count($compras_ids) . ' seleccionada(s)' : 'Todas las compras' }}
+                </span>
+                        </button>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary me-2">
                             <i class="ri-filter-3-line"></i> Aplicar
                         </button>
@@ -193,6 +206,26 @@
                         </a>
                     </div>
                 </form>
+
+                {{-- Chip resumen de filtro por compras --}}
+                @if(!empty($compras_ids))
+                    <div class="mt-3">
+            <span class="badge bg-info text-dark">
+                <i class="ri-filter-3-line"></i>
+                Análisis limitado a <strong>{{ count($compras_ids) }}</strong> compra(s) seleccionada(s)
+            </span>
+                        <a href="{{ route('proveedores.productos-panel', [
+                    'codprov' => $proveedor->codprov,
+                    'fecha_desde' => $fecha_desde,
+                    'fecha_hasta' => $fecha_hasta,
+                    'orden' => $orden,
+                    'filtro' => $filtro,
+                ]) }}"
+                           class="badge bg-secondary text-decoration-none ms-2">
+                            <i class="ri-close-line"></i> Quitar filtro de compras
+                        </a>
+                    </div>
+                @endif
             </div>
 
             <!-- KPI Cards -->
@@ -1118,6 +1151,105 @@
     </div>
 
     @include('proveedores.partials.producto_edit_modal')
+
+    <div class="modal fade" id="selectorComprasModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background:linear-gradient(135deg,#fd7e14,#e83e8c);color:#fff;">
+                    <div>
+                        <h5 class="modal-title text-white mb-0">
+                            <i class="ri-shopping-cart-2-line"></i> Seleccionar compras para el análisis
+                        </h5>
+                        <small class="text-white-50">
+                            Marca las facturas de compra. El análisis se limitará a los productos que aparezcan en ellas.
+                        </small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-primary" id="selTodasCompras">Todas</button>
+                            <button type="button" class="btn btn-outline-secondary" id="selNingunaCompras">Ninguna</button>
+                            <button type="button" class="btn btn-outline-warning" id="selUltimas5">Últimas 5</button>
+                        </div>
+                        <div class="input-group input-group-sm" style="width:280px;">
+                            <span class="input-group-text"><i class="ri-search-line"></i></span>
+                            <input type="text" id="buscarCompra" class="form-control" placeholder="Buscar por documento, sucursal o fecha...">
+                        </div>
+                    </div>
+
+                    <div class="table-responsive" style="max-height:450px;overflow-y:auto;">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light" style="position:sticky;top:0;z-index:1;">
+                            <tr>
+                                <th style="width:40px;">
+                                    <input type="checkbox" id="checkAllCompras">
+                                </th>
+                                <th style="width:90px;">Fecha</th>
+                                <th style="width:110px;">Documento</th>
+                                <th style="width:90px;">Tipo</th>
+                                <th>Sucursal</th>
+                                <th class="text-end" style="width:90px;">Ítems</th>
+                                <th class="text-end" style="width:90px;">Unidades</th>
+                                <th class="text-end" style="width:110px;">Monto</th>
+                            </tr>
+                            </thead>
+                            <tbody id="comprasSelectorTableBody">
+                            @forelse($comprasSelector as $c)
+                                <tr data-compra-row data-id="{{ $c['id'] }}"
+                                    data-search="{{ strtolower($c['numerod'].' '.$c['sucursal'].' '.$c['fecha_fmt'].' '.$c['tipo_texto']) }}">
+                                    <td>
+                                        <input type="checkbox" class="form-check-input check-compra"
+                                               value="{{ $c['id'] }}"
+                                               data-id="{{ $c['id'] }}"
+                                            {{ in_array($c['id'], $compras_ids ?? []) ? 'checked' : '' }}>
+                                    </td>
+                                    <td><small>{{ $c['fecha_fmt'] }}</small></td>
+                                    <td><strong>{{ $c['numerod'] }}</strong></td>
+                                    <td>
+                                        @if($c['tipocom'] === 'U')
+                                            <span class="badge bg-success">Compra</span>
+                                        @else
+                                            <span class="badge bg-danger">Devolución</span>
+                                        @endif
+                                    </td>
+                                    <td><small>{{ $c['sucursal'] }}</small></td>
+                                    <td class="text-end"><small>{{ $c['total_items'] }}</small></td>
+                                    <td class="text-end"><small>{{ number_format($c['unidades'], 0, ',', '.') }}</small></td>
+                                    <td class="text-end">
+                                        <small>${{ number_format($c['monto'], 2, ',', '.') }}</small>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-3">
+                                        <i class="ri-inbox-line fs-3 d-block"></i>
+                                        No hay compras en el período seleccionado
+                                    </td>
+                                </tr>
+                            @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer d-flex justify-content-between">
+                    <div>
+                    <span class="badge bg-info text-dark" id="contadorCompras">
+                        {{ count($compras_ids ?? []) }} seleccionada(s)
+                    </span>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="aplicarComprasBtn">
+                            <i class="ri-filter-3-line"></i> Aplicar filtro
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @section('scripts')
@@ -1264,6 +1396,81 @@
         });
 
         $(document).ready(function() {
+
+            // ============================================================
+// SELECTOR DE COMPRAS PARA FILTRAR EL ANÁLISIS
+// ============================================================
+            (function() {
+                const $modal   = $('#selectorComprasModal');
+                const $tbody   = $('#comprasSelectorTableBody');
+                const $contador= $('#contadorCompras');
+
+                function updateContador() {
+                    const n = $tbody.find('.check-compra:checked').length;
+                    $contador.text(n + ' seleccionada(s)');
+                    $('#selNingunaCompras').prop('disabled', n === 0);
+                    $('#comprasSelectedCount').text(n > 0 ? n + ' seleccionada(s)' : 'Todas las compras');
+                }
+
+                $tbody.on('change', '.check-compra', updateContador);
+                updateContador();
+
+                // Seleccionar todas / ninguna / últimas 5
+                $('#selTodasCompras').on('click', function() {
+                    $tbody.find('tr[data-compra-row]:visible .check-compra').prop('checked', true);
+                    updateContador();
+                });
+
+                $('#selNingunaCompras').on('click', function() {
+                    $tbody.find('.check-compra').prop('checked', false);
+                    updateContador();
+                });
+
+                $('#selUltimas5').on('click', function() {
+                    $tbody.find('.check-compra').prop('checked', false);
+                    $tbody.find('tr[data-compra-row]').slice(0, 5).find('.check-compra').prop('checked', true);
+                    updateContador();
+                });
+
+                // Check-all del header (respeta visibles)
+                $('#checkAllCompras').on('change', function() {
+                    $tbody.find('tr[data-compra-row]:visible .check-compra').prop('checked', this.checked);
+                    updateContador();
+                });
+
+                // Búsqueda con tokens
+                $('#buscarCompra').on('input', function() {
+                    const term = $(this).val().trim().toLowerCase();
+                    const tokens = term.split(/\s+/).filter(t => t.length > 0);
+
+                    $tbody.find('tr[data-compra-row]').each(function() {
+                        const $row = $(this);
+                        const txt  = ($row.data('search') || '').toString();
+                        const ok   = tokens.length === 0 || tokens.every(t => txt.includes(t));
+                        $row.toggle(ok);
+                    });
+                });
+
+                // Aplicar: reconstruye el form GET y envía compras_ids[]
+                $('#aplicarComprasBtn').on('click', function() {
+                    const $form = $('#filtrosForm');
+                    const $container = $('#comprasIdsContainer').empty();
+
+                    $tbody.find('.check-compra:checked').each(function() {
+                        $('<input>', {
+                            type: 'hidden',
+                            name: 'compras_ids[]',
+                            value: $(this).val()
+                        }).appendTo($container);
+                    });
+
+                    // Si no se seleccionó ninguna, NO se envía compras_ids (sin filtro)
+                    $form.trigger('submit');
+                });
+
+                // Al abrir, re-sincronizar contador
+                $modal.on('shown.bs.modal', updateContador);
+            })();
 
             $(document).on('click', '.ver-compras-historicas', function () {
                 const codprod = $(this).data('codprod');

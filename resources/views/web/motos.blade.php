@@ -277,6 +277,17 @@
             .filtro-opcion { font-size: .8rem; }
             .chip-estilo-filtro { font-size: .72rem; padding: .25rem .6rem; }
         }
+        .breadcrumb a,.breadcrumb a:visited, .page-link{
+            color:#122658 !important;
+        }
+        .active > .page-link, .page-link.active{
+            z-index: 3;
+            color: var(--bs-pagination-active-color) !important;
+            background-color: #122658;
+            border-color: #122658;
+        }
+
+
     </style>
 @endsection
 

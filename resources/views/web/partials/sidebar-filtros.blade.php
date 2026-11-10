@@ -20,25 +20,6 @@
         </div>
 
         {{-- ============================================================ --}}
-        {{-- MARCA --}}
-        {{-- ============================================================ --}}
-        <div class="filtro-bloque">
-            <div class="filtro-titulo">Marca</div>
-
-            <a href="{{ route('web.motos', array_merge(request()->except('marca', 'page'))) }}"
-               class="filtro-opcion filtro-link {{ !$marcaCodalte ? 'activo' : '' }}">
-                <span>Todas</span>
-            </a>
-
-            @foreach($marcas as $m)
-                <a href="{{ route('web.motos', array_merge(request()->except('marca', 'page'), ['marca' => $m->codalte])) }}"
-                   class="filtro-opcion filtro-link {{ $marcaCodalte === $m->codalte ? 'activo' : '' }}">
-                    <span>{{ $m->nombre_corto }}</span>
-                </a>
-            @endforeach
-        </div>
-
-        {{-- ============================================================ --}}
         {{-- ESTILO --}}
         {{-- ============================================================ --}}
         @if(isset($estilos) && $estilos->count())
@@ -58,6 +39,27 @@
                 </div>
             </div>
         @endif
+
+        {{-- ============================================================ --}}
+        {{-- MARCA --}}
+        {{-- ============================================================ --}}
+        <div class="filtro-bloque">
+            <div class="filtro-titulo">Marca</div>
+
+            <a href="{{ route('web.motos', array_merge(request()->except('marca', 'page'))) }}"
+               class="filtro-opcion filtro-link {{ !$marcaCodalte ? 'activo' : '' }}">
+                <span>Todas</span>
+            </a>
+
+            @foreach($marcas as $m)
+                <a href="{{ route('web.motos', array_merge(request()->except('marca', 'page'), ['marca' => $m->codalte])) }}"
+                   class="filtro-opcion filtro-link {{ $marcaCodalte === $m->codalte ? 'activo' : '' }}">
+                    <span>{{ $m->nombre_corto }}</span>
+                </a>
+            @endforeach
+        </div>
+
+
 
         {{-- ============================================================ --}}
         {{-- PRECIO --}}

@@ -236,7 +236,16 @@
                             <div>
                                 <h6 class="text-muted">Total Compras</h6>
                                 <h3 class="kpi-valor">${{ number_format($kpi['total_compras'] ?? 0, 2,',','.') }}</h3>
-                                <small class="text-muted">Período seleccionado</small>
+                                <small class="text-muted">
+                                    @if(!empty($compras_ids))
+                                        <span class="text-info fw-bold">
+                                            <i class="ri-filter-3-line"></i>
+                                            {{ count($compras_ids) }} compra(s) seleccionada(s)
+                                        </span>
+                                    @else
+                                        Período seleccionado
+                                    @endif
+                                </small>
                             </div>
                             <div class="fs-1 text-primary-custom">
                                 <i class="ri-shopping-cart-line"></i>
@@ -255,7 +264,14 @@
                             <div>
                                 <h6 class="text-muted">Total Ventas</h6>
                                 <h3 class="kpi-valor">${{ number_format($kpi['total_ventas'] ?? 0, 2,',','.') }}</h3>
-                                <small class="text-muted">Período seleccionado</small>
+                                @if(!empty($compras_ids))
+                                    <small class="text-success">
+                                        <i class="ri-arrow-up-line"></i> Últimos 30 días:
+                                        ${{ number_format($kpi['compras_30dias'] ?? 0, 2, ',', '.') }}
+                                    </small>
+                                @else
+                                    Período seleccionado
+                                @endif
                             </div>
                             <div class="fs-1 text-success-custom">
                                 <i class="ri-bar-chart-line"></i>

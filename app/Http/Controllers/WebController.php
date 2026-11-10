@@ -32,7 +32,6 @@ class WebController extends Controller
                 $dep->marcas = Sainsta::where('comercial', 1)
                     ->where('insPadre', $dep->codinst)
                     ->where('nivel', 2)
-                    ->whereRaw('codinst in (select codinst from saprod where newexisten>0 and comercial=1)')
                     ->where('tipoIns', 0)
                     ->orderBy('descrip')
                     ->get();
@@ -56,7 +55,6 @@ class WebController extends Controller
             ->where('tipoIns', 0)
             ->whereNotIn('codalte', ['01.104', '01.47.', '01.112.'])
             ->orderBy('descrip')
-            ->whereRaw('codinst in (select codinst from saprod where newexisten>0 and comercial=1)')
             ->get()
             ->map(function ($m) {
                 $m->nombre_corto = $m->descrip; //preg_replace('/^MOTOS\s+/i', '', $m->descrip);
@@ -90,7 +88,6 @@ class WebController extends Controller
             ->where('tipoIns', 0)
             ->whereNotIn('codalte', ['01.104', '01.47.', '01.112.'])
             ->orderBy('descrip')
-            ->whereRaw('codinst in (select codinst from saprod where newexisten>0 and comercial=1)')
             ->get()
             ->each(fn($m) => $m->nombre_corto = $m->descrip);
 

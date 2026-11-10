@@ -1152,7 +1152,7 @@
     @include('proveedores.partials.producto_edit_modal')
 
     <div class="modal fade" id="selectorComprasModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xxl modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header" style="background:linear-gradient(135deg,#fd7e14,#e83e8c);color:#fff;">
                     <div>

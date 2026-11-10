@@ -11,14 +11,17 @@ class Saprod extends Model
 
     protected $table    = 'saprod';
     protected $fillable = ['codprod','descrip','descrip2','descrip3', 'fijo',
-        'marca','refere','codinst','observaciones','activo',
+        'marca','refere','codinst','observaciones','activo','clase','cilindraje',
         'esexento','exdecimal','preciodolarfijo', 'cantxempaq','volumen','peso','unidad',
         'preciod','preciod2','costod','costod2','costod3',
     ];
 
     public function instancia(){
         $comercial = session('comercialid') ;
-        return $this->belongsTo(Sainsta::class, 'codinst', 'codinst')->where('comercial',$comercial);
+        if(!$comercial)$comercial=1;
+
+        return $this->belongsTo(Sainsta::class, 'codinst', 'codinst')
+            ->where('comercial',$comercial);
     }
 
     public function sucursales  (){

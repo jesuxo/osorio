@@ -171,21 +171,37 @@ class SaprodController extends Controller
         return view('reporteInventarios', compact('costoinven') );
     }
 
-    public function buscarproductoget($codprod, $comercial){
-
-        $producto   = Saprod::where(['codprod'=>$codprod, "comercial" => $comercial])->first();
+    public function buscarproductoget($codprod, $comercial)
+    {
+        $producto = Saprod::where(['codprod' => $codprod, 'comercial' => $comercial])->first();
         session(['comercialid' => $comercial]);
-        if(isset($producto) and isset($producto->id)){
-            $instancias = Sainsta::selectRaw("concat( repeat('&nbsp;',((nivel-1)*4)), Descrip ) as label, descrip, id, nivel, codinst ")
-                ->with(['padre'])
-                ->orderBy('codalte','asc')->get();
 
-            $id = $producto->id;
-            return view('product-edit', compact('instancias','producto', 'id'));
-        }else{
-            return response()->redirectTo('index');
+        if (!isset($producto->id)) {
+            return redirect('index');
         }
 
+        $instancias = Sainsta::selectRaw("concat( repeat('&nbsp;',((nivel-1)*4)), Descrip ) as label, descrip, id, nivel, codinst ")
+            ->with(['padre'])
+            ->orderBy('codalte', 'asc')
+            ->get();
+
+        $clasesBase = ['Deportiva','Clásica','Scooter','Doble propósito','Cuatrimoto','Trabajo','Eléctrica'];
+
+        $clasesExistentes = Saprod::where('comercial', 1)
+            ->whereNotNull('clase')
+            ->where('clase', '<>', '')
+            ->distinct()
+            ->pluck('clase')
+            ->toArray();
+
+        $clases = collect($clasesBase)
+            ->merge($clasesExistentes)
+            ->unique()
+            ->sort()
+            ->values()
+            ->toArray();
+
+        return view('product-edit', compact('instancias', 'producto', 'id', 'clases'));
     }
 
     public function updateSaprodData(Request $request)
@@ -1305,17 +1321,52 @@ class SaprodController extends Controller
 
     public function edit($id)
     {
-            if(Auth::user()  and auth()->user()->can('menu_productos_modificar_productos') ){
-                $producto   = Saprod::find($id);
+        if (!Auth::user() || !auth()->user()->can('menu_productos_modificar_productos')) {
+            return redirect('index');
+        }
 
-                $instancias = Sainsta::selectRaw("concat( repeat('&nbsp;',((nivel-1)*4)), Descrip ) as label, descrip, id, nivel, codinst ")
-                    ->with(['padre'])
-                    ->orderBy('codalte','asc')->get();
+        $producto = Saprod::findOrFail($id);
 
-                return view('product-edit', compact('instancias','producto', 'id'));
-            }else{
-                return response()->redirectTo('index');
-            }
+        $instanciasprod = Sainsta::selectRaw("codalte")
+            ->where('codinst',$producto->codinst)
+            ->get();
+
+        $codalte = $instanciasprod->first()->codalte;
+        $esmoto  = 0;
+        if(substr($codalte,0,3) == '01.')
+            $esmoto = 1;
+
+        $instancias = Sainsta::selectRaw("concat( repeat('&nbsp;',((nivel-1)*4)), Descrip ) as label, descrip, id, nivel, codinst ")
+            ->with(['padre'])
+            ->orderBy('codalte', 'asc')
+            ->get();
+
+        // 🔥 Clases base + las que ya existan en la BD (solo motos)
+        $clasesBase = [
+            'Deportiva',
+            'Clásica',
+            'Scooter',
+            'Doble propósito',
+            'Cuatrimoto',
+            'Trabajo',
+            'Eléctrica',
+        ];
+
+        $clasesExistentes = Saprod::where('comercial', 1)
+            ->whereNotNull('clase')
+            ->where('clase', '<>', '')
+            ->distinct()
+            ->pluck('clase')
+            ->toArray();
+
+        $clases = collect($clasesBase)
+            ->merge($clasesExistentes)
+            ->unique()
+            ->sort()
+            ->values()
+            ->toArray();
+
+        return view('product-edit', compact('esmoto', 'instancias', 'producto', 'id', 'clases'));
     }
 
     public function update(Request $request, $id)

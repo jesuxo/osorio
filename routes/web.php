@@ -15,7 +15,6 @@ use App\Http\Controllers\SerialesExtractorController;
 use App\Http\Controllers\SaprodController;
 use App\Http\Controllers\ChatConversationController;
 use App\Http\Controllers\SavendController;
-//use App\Http\Controllers\ShopController;
 use App\Http\Controllers\IAController;
 use App\Http\Controllers\ViajegastoController;
 use App\Http\Controllers\CwtransferenciasController;
@@ -54,30 +53,26 @@ use App\Http\Controllers\Seriales\VerificacionSerialController;
 | contains the "web" middleware group. Now create something great!
 |
 */
-Route::get('/', [HomeController::class, 'index'])->name('index');
+
+// === RUTAS PÚBLICAS (WEB) ===
+use App\Http\Controllers\WebController;
+
+Route::get('/',                   [WebController::class, 'home'])     ->name('web.home');
+Route::get('/catalogo',           [WebController::class, 'catalogo']) ->name('web.catalogo');
+Route::get('/producto/{codprod}', [WebController::class, 'producto']) ->name('web.producto');
+Route::get('/motos',              [WebController::class, 'motos'])    ->name('web.motos');
+
+// === PANEL ADMINISTRATIVO (protegido) ===
 Route::get('/index', [HomeController::class, 'index'])->name('index');
+Route::get('/dashboard', [HomeController::class, 'index'])->name('dashboard');
 
-/*
-
-Route::prefix('/')->name('shop.')->group(function () {
-
-    // Página principal
-    Route::get('/', [ShopController::class, 'index'])->name('index');
-
-    // Detalle de producto
-    Route::get('/producto/{codprod}', [ShopController::class, 'show'])->name('product');
-
-    // Categoría
-    Route::get('/categoria/{categoriaId}', [ShopController::class, 'category'])->name('category');
-
-    // Búsqueda (página)
-    Route::get('/buscar', [ShopController::class, 'index'])->name('search');
-
-    // Búsqueda AJAX para autocompletado
-    Route::get('/buscar-ajax', [ShopController::class, 'searchAjax'])->name('search.ajax');
-
+// web.php
+Route::prefix('carrito')->name('web.cart.')->group(function () {
+    Route::post('/add',    [WebController::class, 'addToCart'])->name('add');
+    Route::get('/',        [WebController::class, 'viewCart'])->name('view');
+    Route::delete('/{id}', [WebController::class, 'removeFromCart'])->name('remove');
 });
-*/
+
 use App\Http\Controllers\PublicoSeguimientoController;
 
 // Rutas públicas para el chofer (sin autenticación)

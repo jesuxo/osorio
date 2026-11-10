@@ -121,7 +121,49 @@
                                            placeholder="Ej: Kg">
                                 </div>
                             </div>
+
                         </div>
+                        @if($esmoto==1)
+                            <div class="row">
+                            <div class="col-lg-6">
+                                <div class="mb-3">
+                                    <label class="form-label" for="clase">Clasificación / Estilo</label>
+                                    <input type="text"
+                                           class="form-control"
+                                           id="clase"
+                                           name="clase"
+                                           list="clases-sugeridas"
+                                           value="{{ old('clase', $producto->clase ?? '') }}"
+                                           placeholder="Ej: Deportiva, Clásica, Scooter…"
+                                           autocomplete="off">
+                                    <datalist id="clases-sugeridas">
+                                        @foreach($clases as $c)
+                                            <option value="{{ $c }}">{{ $c }}</option>
+                                        @endforeach
+                                    </datalist>
+                                    <small class="text-muted">
+                                        Puedes elegir una sugerencia o escribir un estilo nuevo. Se guardará y aparecerá
+                                        en el filtro de la tienda automáticamente.
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="mb-3">
+                                    <label class="form-label" for="cilindraje">Cilindraje (CC)</label>
+                                    <input type="number"
+                                           class="form-control"
+                                           id="cilindraje"
+                                           name="cilindraje"
+                                           value="{{ old('cilindraje', $producto->cilindraje ?? '') }}"
+                                           placeholder="Ej: 250"
+                                           min="0" step="1">
+                                    <small class="text-muted">
+                                        Se muestra como etiqueta en la tienda.
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                         <div class="row " style="display: none">
                             <div class="col-lg-4">
                                 <div class="mb-3">

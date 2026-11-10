@@ -930,7 +930,7 @@ class SaprovController extends Controller
                 DB::raw('1 AS cantidad'),       // ← 1 unidad por serial (clave del fix)
                 'ifac.costodoriginal',
                 'ifac.signo',
-                'ifac.fechat'
+                'ifac.fechae'
             )
             ->get();
     }
@@ -1252,10 +1252,10 @@ class SaprovController extends Controller
                     ->whereRaw("ifac.fk_sucursal in ($sucursalIds)")
                     ->whereBetween('ifac.fechae', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
                     ->select(
-                        DB::raw("DATE(ifac.fechat) as fecha"),
+                        DB::raw("DATE(ifac.fechae) as fecha"),
                         DB::raw("SUM(ifac.signo) as unidades")
                     )
-                    ->groupBy(DB::raw("DATE(ifac.fechat)"))
+                    ->groupBy(DB::raw("DATE(ifac.fechae)"))
                     ->orderBy('fecha')
                     ->get()
                     ->keyBy('fecha');

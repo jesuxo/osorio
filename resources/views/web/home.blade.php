@@ -384,8 +384,8 @@
                                            style="font-size: .7rem; letter-spacing: .5px;">
                                         {{ $moto->marca ?? 'Moto' }}
                                     </small>
-                                    <h6 class="fw-bold mt-1 mb-2" style="font-size: .95rem; line-height: 1.3;">
-                                        <a href="#" <!-- { { route('web.producto', $moto->codprod) }}-->
+                                    <h6 class="fw-bold mt-1 mb-2" style="font-size: .95rem; line-height: 1.3;"><!-- { { route('web.producto', $moto->codprod) }}-->
+                                        <a href="#"
                                            class="text-decoration-none"
                                            style="color: var(--cf-dark);">
                                             {{ $moto->descrip }}

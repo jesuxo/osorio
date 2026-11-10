@@ -561,8 +561,8 @@ class SaprovController extends Controller
 
             $registros[] = [
                 'id'         => $item->id,
-                'fecha'      => $item->fechat,
-                'fecha_fmt'  => Carbon::parse($item->fechat)->format('d/m/Y'),
+                'fecha'      => $item->fechae,
+                'fecha_fmt'  => Carbon::parse($item->fechae)->format('d/m/Y'),
                 'documento'  => $item->numerod,
                 'tipocom'    => $item->tipocom,
                 'tipo_texto' => $item->tipocom == 'U' ? 'Compra' : 'Devolución',
@@ -744,9 +744,9 @@ class SaprovController extends Controller
                         return $item->costodoriginal * $item->signo;
                     });
 
-                    $ultimaVentaItem = $itemsVenta->where('signo', '>', 0)->sortByDesc('fechat')->first();
+                    $ultimaVentaItem = $itemsVenta->where('signo', '>', 0)->sortByDesc('fechae')->first();
                     $producto->dias_sin_venta = $ultimaVentaItem
-                        ? Carbon::parse($ultimaVentaItem->fechat)->diffInDays(now())
+                        ? Carbon::parse($ultimaVentaItem->fechae)->diffInDays(now())
                         : null;
                 } else {
                     $producto->unidades_vendidas = 0;
@@ -778,7 +778,7 @@ class SaprovController extends Controller
                     ->first();
 
                 $producto->dias_sin_venta = $ultima_venta
-                    ? Carbon::parse($ultima_venta->fechat)->diffInDays(now())
+                    ? Carbon::parse($ultima_venta->fechae)->diffInDays(now())
                     : null;
             }
 
@@ -798,8 +798,8 @@ class SaprovController extends Controller
                 ->first();
 
             if ($ultima_compra) {
-                $producto->ultima_compra_fecha     = $ultima_compra->fechat;
-                $producto->ultima_compra_dias      = Carbon::parse($ultima_compra->fechat)->diffInDays(now());
+                $producto->ultima_compra_fecha     = $ultima_compra->fechae;
+                $producto->ultima_compra_dias      = Carbon::parse($ultima_compra->fechae)->diffInDays(now());
                 $producto->ultima_compra_documento = $ultima_compra->numerod;
                 $producto->ultima_compra_id        = $ultima_compra->compra ? $ultima_compra->compra->id : null;
                 $producto->ultima_compra_cantidad  = $ultima_compra->cantidad;
@@ -1113,10 +1113,10 @@ class SaprovController extends Controller
             ->whereIn('tipocom', ['U', 'Y'])
             ->whereBetween('fechae', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:58.00'])
             ->select(
-                DB::raw("DATE(fechat) as fecha"),
+                DB::raw("DATE(fechae) as fecha"),
                 DB::raw("SUM(cantidad * signo) as unidades")
             )
-            ->groupBy(DB::raw("DATE(fechat)"))
+            ->groupBy(DB::raw("DATE(fechae)"))
             ->orderBy('fecha')
             ->get()
             ->keyBy('fecha');
@@ -1638,7 +1638,7 @@ class SaprovController extends Controller
                 'codprov',
                 DB::raw('COUNT(DISTINCT numerod) as total_facturas'),
                 DB::raw('SUM(cantidad * preciod * signo) as monto_total'),
-                DB::raw('MAX(fechat) as ultima_compra')
+                DB::raw('MAX(fechae) as ultima_compra')
             )
             ->groupBy('codprov')
             ->get()

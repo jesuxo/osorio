@@ -7,6 +7,7 @@ use App\Models\Sainsta;
 use App\Models\Saprod;
 use App\Models\Sasucursal;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class WebController extends Controller
 {
@@ -48,20 +49,45 @@ class WebController extends Controller
             ->limit(8)
             ->get();
 
-        // Marcas de motos (para "Explora por marca")
+
+// 1. Traer las marcas (nivel 2 bajo MOTOS)
         $marcasMotos = Sainsta::where('comercial', 1)
             ->where('nivel', 2)
             ->where('insPadre', 1)
             ->where('tipoIns', 0)
             ->whereNotIn('codalte', ['01.104', '01.47.', '01.112.'])
             ->orderBy('descrip')
-            ->get()
-            ->map(function ($m) {
-                $m->nombre_corto = $m->descrip; //preg_replace('/^MOTOS\s+/i', '', $m->descrip);
-                $m->total_motos  = Saprod::where('comercial', 1)
-                    ->where('activo', 1)
-                    ->whereHas('instancia', fn($q) => $q->where('codalte', 'LIKE', $m->codalte . '%'))
-                    ->count();
+            ->get();
+
+// 2. Contar productos con stock agrupados por marca (una sola query)
+        $conteos = DB::table('saprod as p')
+            ->join('sainsta as i3', function ($j) {
+                $j->on('i3.codinst', '=', 'p.codinst')
+                    ->where('i3.nivel', '=', 3)
+                    ->where('i3.comercial', '=', 1);
+            })
+            ->join('sainsta as i2', function ($j) {
+                $j->on('i2.codinst', '=', 'i3.insPadre')
+                    ->where('i2.nivel', '=', 2)
+                    ->where('i2.insPadre', '=', 1)
+                    ->where('i2.comercial', '=', 1);
+            })
+            ->join('newsaexis as e', function ($j) {
+                $j->on('e.codprod', '=', 'p.codprod')
+                    ->on('e.comercial', '=', DB::raw('1'))
+                    ->where('e.existen', '>', 0);
+            })
+            ->where('p.comercial', 1)
+            ->where('p.activo', 1)
+            ->groupBy('i2.codinst')
+            ->select('i2.codinst', DB::raw('COUNT(DISTINCT p.codprod) as total'))
+            ->pluck('total', 'i2.codinst');
+
+// 3. Asignar el conteo a cada marca y filtrar
+        $marcasMotos = $marcasMotos
+            ->map(function ($m) use ($conteos) {
+                $m->nombre_corto = $m->descrip;
+                $m->total_motos  = $conteos[$m->codinst] ?? 0;
                 return $m;
             })
             ->filter(fn($m) => $m->total_motos > 0)

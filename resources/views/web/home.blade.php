@@ -256,7 +256,7 @@
                             ['label' => 'Ciclismo',    'href' => route('web.catalogo', ['familia' => '05.']), 'icon' => 'bi-bicycle'],
                             ['label' => 'Agrícola',    'href' => route('web.catalogo', ['familia' => '06.']), 'icon' => 'bi-tree'],
                             ['label' => 'Boutique',    'href' => route('web.catalogo', ['familia' => '09.']), 'icon' => 'bi-bag'],
-                            ['label' => 'Línea Marrón','href' => route('web.catalogo', ['familia' => '50']),  'icon' => 'bi-box-seam'],
+
                         ];
                     @endphp
 

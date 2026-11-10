@@ -758,7 +758,7 @@ class SaprovController extends Controller
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['Z', 'W'])
                     ->where('esserv', 0)
-                    ->whereBetween('fechat', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:59.00'])
+                    ->whereBetween('fechae', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:59.00'])
                     ->select(DB::raw('SUM(cantidad * signo) as total'))
                     ->value('total') ?? 0;
 
@@ -766,7 +766,7 @@ class SaprovController extends Controller
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['Z', 'W'])
                     ->where('esserv', 0)
-                    ->whereBetween('fechat', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:59.00'])
+                    ->whereBetween('fechae', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:59.00'])
                     ->select(DB::raw('SUM(costodoriginal * cantidad * signo) as total'))
                     ->value('total') ?? 0;
 
@@ -774,7 +774,7 @@ class SaprovController extends Controller
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['Z'])
                     ->where('esserv', 0)
-                    ->orderBy('fechat', 'desc')
+                    ->orderBy('fechae', 'desc')
                     ->first();
 
                 $producto->dias_sin_venta = $ultima_venta
@@ -922,7 +922,7 @@ class SaprovController extends Controller
             ->where('ifac.CodItem', $codprod)
             ->whereIn('ifac.TipoFac', ['Z', 'W'])
             ->where('ifac.esserv', 0)
-            ->whereBetween('ifac.fechat', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:59.00'])
+            ->whereBetween('ifac.fechae', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:59.00'])
             ->whereRaw("ifac.fk_sucursal in ($sucursalIds)")
             ->select(
                 'ifac.id',
@@ -1002,7 +1002,7 @@ class SaprovController extends Controller
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['Z', 'W'])
                     ->where('esserv', 0)
-                    ->whereBetween('fechat', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:59.00'])
+                    ->whereBetween('fechae', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:59.00'])
                     ->select(DB::raw('SUM(costodoriginal * cantidad * signo) as total'))
                     ->value('total') ?? 0;
 
@@ -1061,7 +1061,7 @@ class SaprovController extends Controller
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['Z', 'W'])
                     ->where('esserv', 0)
-                    ->whereBetween('fechat', [$fecha_30dias, $hoy])
+                    ->whereBetween('fechae', [$fecha_30dias, $hoy])
                     ->select(DB::raw('SUM(costodoriginal * cantidad * signo) as total'))
                     ->value('total') ?? 0;
 
@@ -1250,7 +1250,7 @@ class SaprovController extends Controller
                     ->whereIn('ifac.TipoFac', ['Z', 'W'])
                     ->where('ifac.esserv', 0)
                     ->whereRaw("ifac.fk_sucursal in ($sucursalIds)")
-                    ->whereBetween('ifac.fechat', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
+                    ->whereBetween('ifac.fechae', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
                     ->select(
                         DB::raw("DATE(ifac.fechat) as fecha"),
                         DB::raw("SUM(ifac.signo) as unidades")
@@ -1273,7 +1273,7 @@ class SaprovController extends Controller
                     ->whereIn('ifac.TipoFac', ['Z', 'W'])
                     ->where('ifac.esserv', 0)
                     ->whereRaw("ifac.fk_sucursal in ($sucursalIds)")
-                    ->whereBetween('ifac.fechat', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
+                    ->whereBetween('ifac.fechae', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
                     ->select(
                         'ifac.fk_sucursal',
                         DB::raw("SUM(ifac.signo) as unidades")
@@ -1288,12 +1288,12 @@ class SaprovController extends Controller
                 ->whereRaw("fk_sucursal in ($sucursalIds)")
                 ->whereIn('TipoFac', ['Z', 'W'])
                 ->where('esserv', 0)
-                ->whereBetween('fechat', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
+                ->whereBetween('fechae', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
                 ->select(
-                    DB::raw("DATE(fechat) as fecha"),
+                    DB::raw("DATE(fechae) as fecha"),
                     DB::raw("SUM(cantidad * signo) as unidades")
                 )
-                ->groupBy(DB::raw("DATE(fechat)"))
+                ->groupBy(DB::raw("DATE(fechae)"))
                 ->orderBy('fecha')
                 ->get()
                 ->keyBy('fecha');
@@ -1303,7 +1303,7 @@ class SaprovController extends Controller
                 ->whereRaw("fk_sucursal in ($sucursalIds)")
                 ->whereIn('TipoFac', ['Z', 'W'])
                 ->where('esserv', 0)
-                ->whereBetween('fechat', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
+                ->whereBetween('fechae', [$fecha_desde . ' 00:00:00', $fecha_hasta . ' 23:59:59'])
                 ->select(
                     'fk_sucursal',
                     DB::raw("SUM(cantidad * signo) as unidades")
@@ -1463,7 +1463,7 @@ class SaprovController extends Controller
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['Z', 'W'])
                     ->where('esserv', 0)
-                    ->whereBetween('fechat', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:59.00'])
+                    ->whereBetween('fechae', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:59.00'])
                     ->select(DB::raw('SUM(cantidad * signo) as cantidad'))
                     ->value('cantidad') ?? 0;
 
@@ -1471,7 +1471,7 @@ class SaprovController extends Controller
                     ->whereRaw("fk_sucursal in ($sucursalIds)")
                     ->whereIn('TipoFac', ['Z', 'W'])
                     ->where('esserv', 0)
-                    ->whereBetween('fechat', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:59.00'])
+                    ->whereBetween('fechae', [$fecha_desde . ' 00:00:00.00', $fecha_hasta . ' 23:59:59.00'])
                     ->select(DB::raw('SUM(costodoriginal * cantidad * signo) as total'))
                     ->value('total') ?? 0;
             }
@@ -2371,7 +2371,7 @@ class SaprovController extends Controller
                     'ifac.cantidad',
                     'ifac.costodoriginal',
                     'ifac.signo',
-                    'ifac.fechat',
+                    'ifac.fechae',
                     'sf.NroSerial'
                 )
                 ->get();

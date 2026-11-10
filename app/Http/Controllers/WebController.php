@@ -72,11 +72,15 @@ class WebController extends Controller
                     ->where('i2.insPadre', '=', 1)
                     ->where('i2.comercial', '=', 1);
             })
+            ->join('sasucursal as suc', function ($j) {
+                $j->on('suc.fk_comercial', '=', DB::raw('1'));
+            })
             ->join('newsaexis as e', function ($j) {
                 $j->on('e.codprod', '=', 'p.codprod')
-                    ->on('e.comercial', '=', DB::raw('1'))
+                    ->on('e.fk_sucursal', '=', 'suc.id')
                     ->where('e.existen', '>', 0);
             })
+
             ->where('p.comercial', 1)
             ->where('p.activo', 1)
             ->groupBy('i2.codinst')
@@ -114,8 +118,44 @@ class WebController extends Controller
             ->where('tipoIns', 0)
             ->whereNotIn('codalte', ['01.104', '01.47.', '01.112.'])
             ->orderBy('descrip')
-            ->get()
-            ->each(fn($m) => $m->nombre_corto = $m->descrip);
+            ->get();
+
+// Conteo de productos con stock agrupado por marca
+        $conteos = DB::table('saprod as p')
+            ->join('sainsta as i3', function ($j) {
+                $j->on('i3.codinst', '=', 'p.codinst')
+                    ->where('i3.nivel', '=', 3)
+                    ->where('i3.comercial', '=', 1);
+            })
+            ->join('sainsta as i2', function ($j) {
+                $j->on('i2.codinst', '=', 'i3.insPadre')
+                    ->where('i2.nivel', '=', 2)
+                    ->where('i2.insPadre', '=', 1)
+                    ->where('i2.comercial', '=', 1);
+            })
+            ->join('sasucursal as suc', function ($j) {
+                $j->on('suc.fk_comercial', '=', DB::raw('1'));
+            })
+            ->join('newsaexis as e', function ($j) {
+                $j->on('e.codprod', '=', 'p.codprod')
+                    ->on('e.fk_sucursal', '=', 'suc.id')
+                    ->where('e.existen', '>', 0);
+            })
+            ->where('p.comercial', 1)
+            ->where('p.activo', 1)
+            ->groupBy('i2.codinst')
+            ->select('i2.codinst', DB::raw('COUNT(DISTINCT p.codprod) as total'))
+            ->pluck('total', 'i2.codinst');
+
+// Asignar total y filtrar solo marcas con stock
+        $marcas = $marcas
+            ->map(function ($m) use ($conteos) {
+                $m->nombre_corto = $m->descrip;
+                $m->total_motos  = $conteos[$m->codinst] ?? 0;
+                return $m;
+            })
+            ->filter(fn($m) => $m->total_motos > 0)
+            ->values();
 
         // 🔥 Estilos = valores únicos de saprod.clase en motos activas
         $estilos = Saprod::where('comercial', 1)
@@ -171,7 +211,22 @@ class WebController extends Controller
 
         $motos = $query->paginate(12)->appends($request->query());
 
-        $marcaActiva = $marcaCodalte ? $marcas->firstWhere('codalte', $marcaCodalte) : null;
+        $marcaActiva = null;
+        if ($marcaCodalte) {
+            // Buscar primero en la colección filtrada
+            $marcaActiva = $marcas->firstWhere('codalte', $marcaCodalte);
+
+            // Si no está (sin stock), cargarla directo desde sainsta para el breadcrumb
+            if (!$marcaActiva) {
+                $marcaActiva = Sainsta::where('comercial', 1)
+                    ->where('codalte', $marcaCodalte)
+                    ->first();
+
+                if ($marcaActiva) {
+                    $marcaActiva->nombre_corto = $marcaActiva->descrip;
+                }
+            }
+        }
 
         $rango = Saprod::where('comercial', 1)
             ->where('activo', 1)

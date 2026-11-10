@@ -507,7 +507,7 @@
                                             $tipoColor = $compra->tipocom == 'U' ? 'success' : 'danger';
                                         @endphp
                                         <tr>
-                                            <td class="text-center" style="font-size: 11px">{{ \Carbon\Carbon::parse($compra->fechae)->format('d/m/Y') }}</td>
+                                            <td class="text-center" style="font-size: 11px">{{ \Carbon\Carbon::parse($compra->fechat)->format('d/m/Y') }}</td>
                                             <td style="font-size: 11px">
                                                 <button type="button"
                                                         class="btn btn-sm btn-{{$tipoColor}} ver-compra"
@@ -769,7 +769,6 @@
                 </div>
             </div>
 
-
             <!-- Modal para mostrar detalles de la compra -->
             <div class="modal fade" id="compraModal" tabindex="-1" aria-labelledby="compraModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -831,7 +830,6 @@
                     </div>
                 </div>
             </div>
-
 
         </div>
     </div>
@@ -953,6 +951,7 @@
             </div>
         </div>
     </div>
+
     <!-- Modal de compras diarias por producto -->
     <div class="modal fade" id="comprasDiariasModal" tabindex="-1" aria-labelledby="comprasDiariasModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -1153,7 +1152,7 @@
     @include('proveedores.partials.producto_edit_modal')
 
     <div class="modal fade" id="selectorComprasModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-dialog modal-xxl modal-dialog-scrollable modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header" style="background:linear-gradient(135deg,#fd7e14,#e83e8c);color:#fff;">
                     <div>
@@ -1181,25 +1180,34 @@
                     </div>
 
                     <div class="table-responsive" style="max-height:450px;overflow-y:auto;">
-                        <table class="table table-sm table-hover mb-0">
+                        <table class="table table-sm table-hover mb-0 align-middle">
                             <thead class="table-light" style="position:sticky;top:0;z-index:1;">
                             <tr>
                                 <th style="width:40px;">
                                     <input type="checkbox" id="checkAllCompras">
                                 </th>
-                                <th style="width:90px;">Fecha</th>
-                                <th style="width:110px;">Documento</th>
-                                <th style="width:90px;">Tipo</th>
-                                <th>Sucursal</th>
-                                <th class="text-end" style="width:90px;">Ítems</th>
-                                <th class="text-end" style="width:90px;">Unidades</th>
-                                <th class="text-end" style="width:110px;">Monto</th>
+                                <th style="width:85px;">Fecha</th>
+                                <th style="width:100px;">Documento</th>
+                                <th style="width:85px;">Tipo</th>
+                                <th style="min-width:140px;">Sucursal</th>
+                                <th style="min-width:180px;">Notas 1</th>
+                                <th style="min-width:180px;">Notas 2</th>
+                                <th class="text-end" style="width:70px;">Ítems</th>
+                                <th class="text-end" style="width:80px;">Unid.</th>
+                                <th class="text-end" style="width:100px;">Monto</th>
                             </tr>
                             </thead>
                             <tbody id="comprasSelectorTableBody">
                             @forelse($comprasSelector as $c)
+                                @php
+                                    $notas1 = trim($c['notas1'] ?? '');
+                                    $notas2 = trim($c['notas2'] ?? '');
+                                    $searchBlob = strtolower(
+                                        $c['numerod'].' '.$c['sucursal'].' '.$c['fecha_fmt'].' '.$c['tipo_texto'].' '.$notas1.' '.$notas2
+                                    );
+                                @endphp
                                 <tr data-compra-row data-id="{{ $c['id'] }}"
-                                    data-search="{{ strtolower($c['numerod'].' '.$c['sucursal'].' '.$c['fecha_fmt'].' '.$c['tipo_texto']) }}">
+                                    data-search="{{ $searchBlob }}">
                                     <td>
                                         <input type="checkbox" class="form-check-input check-compra"
                                                value="{{ $c['id'] }}"
@@ -1216,6 +1224,28 @@
                                         @endif
                                     </td>
                                     <td><small>{{ $c['sucursal'] }}</small></td>
+                                    <td>
+                                        @if($notas1 !== '')
+                                            <small class="text-truncate d-inline-block"
+                                                   style="max-width:170px;"
+                                                   title="{{ $notas1 }}">
+                                                {{ $notas1 }}
+                                            </small>
+                                        @else
+                                            <small class="text-muted">—</small>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($notas2 !== '')
+                                            <small class="text-truncate d-inline-block"
+                                                   style="max-width:170px;"
+                                                   title="{{ $notas2 }}">
+                                                {{ $notas2 }}
+                                            </small>
+                                        @else
+                                            <small class="text-muted">—</small>
+                                        @endif
+                                    </td>
                                     <td class="text-end"><small>{{ $c['total_items'] }}</small></td>
                                     <td class="text-end"><small>{{ number_format($c['unidades'], 0, ',', '.') }}</small></td>
                                     <td class="text-end">
@@ -1224,7 +1254,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted py-3">
+                                    <td colspan="10" class="text-center text-muted py-3">
                                         <i class="ri-inbox-line fs-3 d-block"></i>
                                         No hay compras en el período seleccionado
                                     </td>
@@ -2229,7 +2259,7 @@
                         <div class="row">
                             <div class="col-md-4">
                                 <p><strong>Documento:</strong> ${compra.numerod}</p>
-                                <p><strong>Fecha:</strong> ${new Date(compra.fechae).toLocaleDateString('es-VE')}</p>
+                                <p><strong>Fecha:</strong> ${new Date(compra.fechat).toLocaleDateString('es-VE')}</p>
                                 <p><strong>Tipo:</strong> <span class="badge bg-${tipoColor}">${tipoTexto}</span></p>
                             </div>
                             <div class="col-md-4">

@@ -845,6 +845,9 @@
             background: none !important;
             border: none !important;
         }
+        .auth-page-wrapper{
+            padding: unset;
+        }
     </style>
     <div class="container-fluid p-0">
         <div class="row g-0 min-vh-100">
@@ -972,7 +975,9 @@
             </div>
 
             <!-- Columna derecha - Hero/Branding -->
-            <div class="col-lg-8 col-md-6 d-none d-md-block" style="background: linear-gradient(135deg, #2f4b9a 0%, #458cca 100%);">
+            <div class="col-lg-8 col-md-6 d-none d-md-block" style="  background: url('https://button.kommo.com/buttons/images/39/0e/2f86d57bb080edbd2777f99095ce4df8c8fa8eb3bcf4cf9ceaedc09a0a8d.jpeg') center center;
+    background-size: auto;
+  background-size: cover;">
                 <div class="h-100 d-flex align-items-center justify-content-center p-5">
                     <div class="text-center text-white" style="max-width: 600px;">
 

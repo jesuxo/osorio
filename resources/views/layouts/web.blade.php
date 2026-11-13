@@ -68,6 +68,55 @@
                     <ul class="dropdown-menu">
                         @php
                             $marcasMotossession = session('marcasMotos');
+                            $marcasMotossession = isset($marcasMotossession)? $marcasMotossession : [] ;
+                            if(count($marcasMotossession) ==0){
+                                $marcasMotos = \App\Models\Sainsta::where('comercial', 1)
+                                ->where('nivel', 2)
+                                ->where('insPadre', 1)
+                                ->where('tipoIns', 0)
+                                ->whereNotIn('codalte', ['01.104', '01.47.', '01.112.'])
+                                ->orderBy('descrip')
+                                ->get();
+
+                    // 2. Contar productos con stock agrupados por marca (una sola query)
+                            $conteos = \Illuminate\Support\Facades\DB::table('saprod as p')
+                                ->join('sainsta as i3', function ($j) {
+                                    $j->on('i3.codinst', '=', 'p.codinst')
+                                        ->where('i3.nivel', '=', 3)
+                                        ->where('i3.comercial', '=', 1);
+                                })
+                                ->join('sainsta as i2', function ($j) {
+                                    $j->on('i2.codinst', '=', 'i3.insPadre')
+                                        ->where('i2.nivel', '=', 2)
+                                        ->where('i2.insPadre', '=', 1)
+                                        ->where('i2.comercial', '=', 1);
+                                })
+                                ->join('sasucursal as suc', function ($j) {
+                                    $j->on('suc.fk_comercial', '=', \Illuminate\Support\Facades\DB::raw('1'));
+                                })
+                                ->join('newsaexis as e', function ($j) {
+                                    $j->on('e.codprod', '=', 'p.codprod')
+                                        ->on('e.fk_sucursal', '=', 'suc.id')
+                                        ->where('e.existen', '>', 0);
+                                })
+
+                                ->where('p.comercial', 1)
+                                ->where('p.activo', 1)
+                                ->groupBy('i2.codinst')
+                                ->select('i2.codinst', \Illuminate\Support\Facades\DB::raw('COUNT(DISTINCT p.codprod) as total'))
+                                ->pluck('total', 'i2.codinst');
+
+                    // 3. Asignar el conteo a cada marca y filtrar
+                            $marcasMotos = $marcasMotos
+                                ->map(function ($m) use ($conteos) {
+                                    $m->nombre_corto = $m->descrip;
+                                    $m->imagen       = $m->imagen;
+                                    $m->total_motos  = $conteos[$m->codinst] ?? 0;
+                                    return $m;
+                                })
+                                ->filter(fn($m) => $m->total_motos > 0)
+                                ->values();
+                            }
                         @endphp
                         @foreach($marcasMotossession as $m)
                             <li>

@@ -100,7 +100,9 @@ class WebController extends Controller
 
         session(['marcasMotos'=>$marcasMotos]);
 
-        return view('web.home', compact('motoHero', 'departamentos', 'motosDestacadas', 'marcasMotos'));
+        $sucursales = $this->getSucursales();
+
+        return view('web.home', compact('sucursales', 'motoHero', 'departamentos', 'motosDestacadas', 'marcasMotos'));
     }
 
     public function motos(Request $request)
@@ -388,5 +390,157 @@ class WebController extends Controller
         unset($cart[$id]);
         session(['cart' => $cart]);
         return redirect()->route('web.cart.view')->with('success', 'Producto eliminado');
+    }
+
+    // app/Http/Controllers/WebController.php
+
+    /**
+     * Datos de sucursales agrupadas por ciudad.
+     * Reutilizable por home() y sucursales().
+     */
+    private function getSucursales(): array
+    {
+        return [
+            'lafria' => [
+                'label'      => 'La Fría',
+                'count'      => 3,
+                'descripcion'=> 'Tres tiendas multimarca en el corazón de La Fría.',
+                'sucursales' => [
+                    [
+                        'nombre'  => 'Osorio Group',
+                        'tipo'    => 'Multimarca',
+                        'dir'     => 'Av. Aeropuerto',
+                        'horario' => 'Lun–sáb 8:30–17:00',
+                        'tel'     => null,
+                        'ig'      => '@osoriogroup',
+                        'logo'    => 'osorio.png',
+                        'maps'    => 'https://maps.google.com/?q=Av.+Aeropuerto+La+Fria+Tachira',
+                    ],
+                    [
+                        'nombre'  => 'Bera La Fría',
+                        'tipo'    => 'Bera',
+                        'dir'     => 'Av. Aeropuerto',
+                        'horario' => 'Lun–sáb 8:30–17:00',
+                        'tel'     => null,
+                        'ig'      => '@vera_tachira_lafria',
+                        'logo'    => 'bera.png',
+                        'maps'    => 'https://maps.google.com/?q=Av.+Aeropuerto+La+Fria+Tachira',
+                    ],
+                    [
+                        'nombre'  => 'Bel Motos',
+                        'tipo'    => 'Bel Motos',
+                        'dir'     => 'Av. Aeropuerto',
+                        'horario' => 'Lun–sáb 8:30–17:00',
+                        'tel'     => null,
+                        'ig'      => '@belmotoosorio',
+                        'logo'    => 'bel.png',
+                        'maps'    => 'https://maps.google.com/?q=Av.+Aeropuerto+La+Fria+Tachira',
+                    ],
+                ],
+            ],
+            'sancristobal' => [
+                'label'      => 'San Cristóbal',
+                'count'      => 4,
+                'descripcion'=> 'Cuatro tiendas con todas nuestras marcas, incluyendo CFMOTO.',
+                'sucursales' => [
+                    [
+                        'nombre'  => 'EK San Cristóbal',
+                        'tipo'    => 'EK · QJMOTOR',
+                        'dir'     => 'Av. Carabobo',
+                        'horario' => 'Lun–sáb 8:30–17:00',
+                        'tel'     => null,
+                        'ig'      => '@osoriomotos',
+                        'logo'    => 'ek.png',
+                        'maps'    => 'https://maps.google.com/?q=Av.+Carabobo+San+Cristobal+Tachira',
+                    ],
+                    [
+                        'nombre'  => 'CFMOTO Táchira',
+                        'tipo'    => 'CFMOTO',
+                        'dir'     => 'Av. Libertador, Edif. Kato Motor, local B-10',
+                        'horario' => 'Lun–vie 8:30–17:00 · Sáb 9:00–14:00',
+                        'tel'     => '0414-4180083',
+                        'ig'      => '@cfmoto_tachira',
+                        'logo'    => 'cfmoto.png',
+                        'maps'    => 'https://maps.google.com/?q=Av.+Libertador+Kato+Motor+San+Cristobal',
+                    ],
+                    [
+                        'nombre'  => 'Haojin Osorio',
+                        'tipo'    => 'Haojin',
+                        'dir'     => null,
+                        'horario' => 'Lun–sáb 8:30–17:00',
+                        'tel'     => null,
+                        'ig'      => '@haojinosorio',
+                        'logo'    => 'haojin.png',
+                        'maps'    => null,
+                    ],
+                    [
+                        'nombre'  => 'Bel Motos',
+                        'tipo'    => 'Bel Motos',
+                        'dir'     => 'Av. Carabobo',
+                        'horario' => 'Lun–sáb 8:30–17:00',
+                        'tel'     => null,
+                        'ig'      => '@belmotoosorio',
+                        'logo'    => 'bel.png',
+                        'maps'    => 'https://maps.google.com/?q=Av.+Carabobo+San+Cristobal+Tachira',
+                    ],
+                ],
+            ],
+            'sanantonio' => [
+                'label'      => 'San Antonio',
+                'count'      => 4,
+                'descripcion'=> 'Cuatro tiendas en la frontera, con envíos a toda Venezuela.',
+                'sucursales' => [
+                    [
+                        'nombre'  => 'Osorio Group',
+                        'tipo'    => 'Multimarca',
+                        'dir'     => 'Av. Venezuela',
+                        'horario' => 'Lun–sáb 8:30–17:00',
+                        'tel'     => null,
+                        'ig'      => null,
+                        'logo'    => 'osorio.png',
+                        'maps'    => 'https://maps.google.com/?q=Av.+Venezuela+San+Antonio+Tachira',
+                    ],
+                    [
+                        'nombre'  => 'EK San Antonio',
+                        'tipo'    => 'EK · QJMOTOR',
+                        'dir'     => 'Av. Venezuela',
+                        'horario' => 'Lun–sáb 8:30–17:00',
+                        'tel'     => null,
+                        'ig'      => '@eksanantonio',
+                        'logo'    => 'ek.png',
+                        'maps'    => 'https://maps.google.com/?q=Av.+Venezuela+San+Antonio+Tachira',
+                    ],
+                    [
+                        'nombre'  => 'Haojin Osorio',
+                        'tipo'    => 'Haojin',
+                        'dir'     => null,
+                        'horario' => 'Lun–sáb 8:30–17:00',
+                        'tel'     => null,
+                        'ig'      => '@haojinosorio',
+                        'logo'    => 'haojin.png',
+                        'maps'    => null,
+                    ],
+                    [
+                        'nombre'  => 'Bel Motos',
+                        'tipo'    => 'Bel Motos',
+                        'dir'     => 'Av. Venezuela',
+                        'horario' => 'Lun–sáb 8:30–17:00',
+                        'tel'     => null,
+                        'ig'      => '@belmotoosorio',
+                        'logo'    => 'bel.png',
+                        'maps'    => 'https://maps.google.com/?q=Av.+Venezuela+San+Antonio+Tachira',
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    public function sucursales(Request $request)
+    {
+        $ciudades   = $this->getSucursales();
+        $tabActivo  = $request->get('tab', 'todas');
+        $totalTiendas = collect($ciudades)->sum('count');
+
+        return view('web.sucursales', compact('ciudades', 'tabActivo', 'totalTiendas'));
     }
 }

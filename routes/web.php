@@ -57,10 +57,11 @@ use App\Http\Controllers\Seriales\VerificacionSerialController;
 // === RUTAS PÚBLICAS (WEB) ===
 use App\Http\Controllers\WebController;
 
-Route::get('/',                   [WebController::class, 'home'])     ->name('web.home');
-Route::get('/catalogo',           [WebController::class, 'catalogo']) ->name('web.catalogo');
-Route::get('/producto/{codprod}', [WebController::class, 'producto']) ->name('web.producto');
-Route::get('/motos',              [WebController::class, 'motos'])    ->name('web.motos');
+Route::get('/',                   [WebController::class, 'home'])      ->name('web.home');
+Route::get('/catalogo',           [WebController::class, 'catalogo'])  ->name('web.catalogo');
+Route::get('/producto/{codprod}', [WebController::class, 'producto'])  ->name('web.producto');
+Route::get('/motos',              [WebController::class, 'motos'])     ->name('web.motos');
+Route::get('/sucursales',         [WebController::class, 'sucursales'])->name('web.sucursales');
 
 // === PANEL ADMINISTRATIVO (protegido) ===
 Route::get('/index', [HomeController::class, 'index'])->name('index');

@@ -465,9 +465,9 @@
                     { { route('web.catalogo') }}
                     -->
                 </li>
-                <li class="nav-item"><a class="nav-link" href="#">Repuestos</a></li>
-                <li class="nav-item"><a class="nav-link" href="#">Lubricantes</a></li>
-                <li class="nav-item"><a class="nav-link" href="#">Boutique</a></li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('web.sucursales') }}">Sucursales</a>
+                </li>
             </ul>
             <form class="d-flex me-3" action="{{ route('web.motos') }}" method="GET">
                 <input class="form-control form-control-sm"

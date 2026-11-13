@@ -55,12 +55,26 @@
             <div class="col-lg-2 col-md-6 col-6">
                 <h6 class="footer-titulo">Tiendas</h6>
                 <ul class="footer-lista">
-                    <li><a href="{{ route('web.home') }}#sucursales">La Fría <span class="footer-count">3</span></a></li>
-                    <li><a href="{{ route('web.home') }}#sucursales">San Cristóbal <span class="footer-count">4</span></a></li>
-                    <li><a href="{{ route('web.home') }}#sucursales">San Antonio <span class="footer-count">4</span></a></li>
-                    <li><a href="{{ route('web.home') }}#sucursales" class="footer-ver-todas">
+                    <li>
+                        <a href="{{ route('web.sucursales', ['tab' => 'lafria']) }}">
+                            La Fría <span class="footer-count">3</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('web.sucursales', ['tab' => 'sancristobal']) }}">
+                            San Cristóbal <span class="footer-count">4</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('web.sucursales', ['tab' => 'sanantonio']) }}">
+                            San Antonio <span class="footer-count">4</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('web.sucursales') }}" class="footer-ver-todas">
                             Ver todas <i class="bi bi-arrow-right"></i>
-                        </a></li>
+                        </a>
+                    </li>
                 </ul>
             </div>
 

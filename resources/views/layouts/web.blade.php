@@ -220,6 +220,196 @@
                 justify-content: center;
             }
         }
+
+        /* ============================================================ */
+        /* SUCURSALES — FONDO OSCURO                                     */
+        /* ============================================================ */
+
+        .sucursales-section-dark {
+            background: #122658;
+            color: #fff;
+        }
+
+        /* Badge de ubicación */
+        .badge-cat-dark {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        /* Tabs */
+        .suc-tabs-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: .25rem;
+        }
+        .suc-tabs {
+            flex-wrap: nowrap;
+            gap: .5rem;
+            border: none;
+        }
+        .suc-tabs .nav-link {
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 50px;
+            padding: .5rem 1rem;
+            font-size: .85rem;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: all .2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+        }
+        .suc-tabs .nav-link:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: #fff;
+        }
+        .suc-tabs .nav-link.active {
+            background: var(--cf-teal);
+            border-color: var(--cf-teal);
+            color: #122658;
+            font-weight: 700;
+        }
+        .suc-tabs .nav-link.active .suc-tab-count {
+            background: rgba(18, 38, 88, 0.25);
+            color: #fff;
+        }
+        .suc-tab-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 .4rem;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            font-size: .7rem;
+            font-weight: 700;
+        }
+
+        /* Card de sucursal */
+        .card-sucursal {
+            background: #1a326e;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: all .2s ease;
+        }
+        .card-sucursal:hover {
+            border-color: var(--cf-teal);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .card-sucursal-head {
+            padding: 1rem 1rem .75rem;
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .suc-logo {
+            width: 44px;
+            height: 44px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 4px;
+        }
+
+        .suc-logo-placeholder {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--cf-teal);
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .suc-tipo {
+            display: block;
+            color: rgba(255, 255, 255, 0.55);
+            font-size: .7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .suc-nombre {
+            margin: 0;
+            font-size: .95rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+        }
+
+        .card-sucursal-body {
+            padding: .75rem 1rem 1rem;
+            flex-grow: 1;
+        }
+
+        .suc-line {
+            display: flex;
+            align-items: flex-start;
+            gap: .5rem;
+            font-size: .8rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: .5rem;
+            line-height: 1.4;
+        }
+        .suc-line:last-child {
+            margin-bottom: 0;
+        }
+        .suc-line i {
+            color: var(--cf-teal);
+            font-size: .9rem;
+            margin-top: 1px;
+            flex-shrink: 0;
+        }
+        .suc-line a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            transition: color .15s ease;
+        }
+        .suc-line a:hover {
+            color: var(--cf-teal);
+        }
+
+        .card-sucursal-foot {
+            padding: 0 1rem 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 767.98px) {
+            .suc-tabs .nav-link {
+                font-size: .78rem;
+                padding: .45rem .85rem;
+            }
+            .suc-tab-count {
+                min-width: 18px;
+                height: 18px;
+                font-size: .65rem;
+            }
+        }
+        .sucursales-section-dark .btn-cf {
+            background: var(--cf-teal);
+            color: #122658;
+            font-weight: 700;
+        }
+        .sucursales-section-dark .btn-cf:hover {
+            background: #fff;
+            color: #122658;
+        }
     </style>
     @yield('css')
 </head>

@@ -1366,7 +1366,15 @@ class SaprodController extends Controller
             ->values()
             ->toArray();
 
-        return view('product-edit', compact('esmoto', 'instancias', 'producto', 'id', 'clases'));
+        $gruposExistentes = Saprod::where('comercial', $producto->comercial)
+            ->whereNotNull('grupo')
+            ->where('grupo', '<>', '')
+            ->distinct()
+            ->orderBy('grupo')
+            ->pluck('grupo')
+            ->toArray();
+
+        return view('product-edit', compact('gruposExistentes', 'esmoto', 'instancias', 'producto', 'id', 'clases'));
     }
 
     public function update(Request $request, $id)
@@ -1397,6 +1405,11 @@ class SaprodController extends Controller
 
                 if(!$request->preciodolarfijo)
                     $producto->preciodolarfijo = 0;
+
+                if (!$request->grupo_destacado) {
+                    $producto->grupo_destacado = 0;
+                }
+
 
                 $producto->save();
 
@@ -1575,5 +1588,135 @@ class SaprodController extends Controller
         $existencias = NewSaexis::whereRaw("fk_sucursal in ($auxsucu) and codprod='$codprod' and existen <> 0")->orderBy('codubic')->get();
 
         return response()->json(['success'=>'success', 'existencias' => $existencias]);
+    }
+
+    /**
+     * Vista de edición masiva de motos (agrupación por colores).
+     */
+    public function grupos(Request $request)
+    {
+        $comercial = session('comercialid', 1);
+
+        // Filtros opcionales
+        $busqueda = $request->get('q', '');
+        $soloConGrupo = $request->get('con_grupo', ''); // '', '1', '0'
+        $marcaFiltro  = $request->get('marca', '');
+
+        // Query base
+        $query = Saprod::where('comercial', $comercial)
+            ->whereHas('instancia', fn($q) => $q->where('codalte', 'LIKE', '01.%'))
+            ->orderBy('descrip');
+
+        if ($busqueda) {
+            $query->where(function ($q) use ($busqueda) {
+                $q->where('descrip', 'LIKE', "%{$busqueda}%")
+                    ->orWhere('codprod', 'LIKE', "%{$busqueda}%")
+                    ->orWhere('refere', 'LIKE', "%{$busqueda}%")
+                    ->orWhere('marca', 'LIKE', "%{$busqueda}%")
+                    ->orWhere('grupo', 'LIKE', "%{$busqueda}%");
+            });
+        }
+
+        if ($soloConGrupo === '1') {
+            $query->whereNotNull('grupo')->where('grupo', '<>', '');
+        } elseif ($soloConGrupo === '0') {
+            $query->where(function ($q) {
+                $q->whereNull('grupo')->orWhere('grupo', '');
+            });
+        }
+
+        if ($marcaFiltro) {
+            $query->where('marca', $marcaFiltro);
+        }
+
+        // Paginar de a 50 (es una tabla de edición)
+        $productos = $query->paginate(50)->appends($request->query());
+
+        // Listas auxiliares
+        $gruposExistentes = Saprod::where('comercial', $comercial)
+            ->whereNotNull('grupo')
+            ->where('grupo', '<>', '')
+            ->distinct()
+            ->orderBy('grupo')
+            ->pluck('grupo')
+            ->toArray();
+
+        $marcas = Saprod::where('comercial', $comercial)
+            ->whereHas('instancia', fn($q) => $q->where('codalte', 'LIKE', '01.%'))
+            ->whereNotNull('marca')
+            ->where('marca', '<>', '')
+            ->distinct()
+            ->orderBy('marca')
+            ->pluck('marca')
+            ->toArray();
+
+        $clasesBase = ['Deportiva', 'Clásica', 'Scooter', 'Doble propósito', 'Cuatrimoto', 'Trabajo', 'Eléctrica'];
+        $clasesExistentes = Saprod::where('comercial', $comercial)
+            ->whereNotNull('clase')
+            ->where('clase', '<>', '')
+            ->distinct()
+            ->pluck('clase')
+            ->toArray();
+        $clases = collect($clasesBase)->merge($clasesExistentes)->unique()->sort()->values()->toArray();
+
+        return view('saprod-grupos', compact(
+            'productos', 'gruposExistentes', 'marcas', 'clases',
+            'busqueda', 'soloConGrupo', 'marcaFiltro'
+        ));
+    }
+
+    /**
+     * Guardar cambios de una fila vía AJAX.
+     */
+    public function gruposUpdate(Request $request)
+    {
+        $request->validate([
+            'codprod' => 'required|string|exists:saprod,codprod',
+            'campo'   => 'required|in:descrip,refere,marca,grupo,grupo_nombre,color_hex,color_nombre,clase,cilindraje',
+            'valor'   => 'nullable|string|max:255',
+        ]);
+
+        $comercial = session('comercialid', 1);
+
+        $producto = Saprod::where('comercial', $comercial)
+            ->where('codprod', $request->codprod)
+            ->firstOrFail();
+
+        $campo = $request->campo;
+        $valor = $request->valor;
+
+        // Sanitizar según el tipo
+        if ($campo === 'color_hex') {
+            $valor = strtoupper(trim((string) $valor));
+            if ($valor !== '' && !preg_match('/^#[0-9A-F]{6}$/', $valor)) {
+                return response()->json(['error' => 'Color hex inválido (ej: #1E40AF)'], 422);
+            }
+            if ($valor === '') $valor = null;
+        }
+
+        if ($campo === 'cilindraje') {
+            $valor = $valor === '' || $valor === null ? null : (int) $valor;
+        }
+
+        if (in_array($campo, ['grupo', 'grupo_nombre', 'refere', 'marca', 'color_nombre', 'clase'])) {
+            $valor = $valor === '' ? null : trim((string) $valor);
+        }
+
+        if ($campo === 'descrip') {
+            if (trim((string) $valor) === '') {
+                return response()->json(['error' => 'La descripción no puede estar vacía'], 422);
+            }
+            $valor = trim((string) $valor);
+        }
+
+        $producto->{$campo} = $valor;
+        $producto->save();
+
+        return response()->json([
+            'success' => true,
+            'campo'   => $campo,
+            'valor'   => $producto->{$campo},
+            'message' => 'Guardado',
+        ]);
     }
 }

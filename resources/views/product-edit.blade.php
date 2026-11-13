@@ -123,6 +123,162 @@
                             </div>
 
                         </div>
+
+                        {{-- ============================================================ --}}
+                        {{-- AGRUPACIÓN POR COLORES                                       --}}
+                        {{-- ============================================================ --}}
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="bi bi-palette me-1"></i> Agrupación por colores
+                                </h5>
+                                <small class="text-muted">
+                                    Si esta moto tiene versiones por color, asígnales el mismo <strong>grupo</strong>
+                                    para que se muestren como un solo producto en el catálogo.
+                                </small>
+                            </div>
+                            <div class="card-body">
+
+                                <div class="row">
+                                    {{-- Grupo --}}
+                                    <div class="col-lg-6">
+                                        <div class="mb-3">
+                                            <label class="form-label" for="grupo">
+                                                Grupo / Código de agrupación
+                                            </label>
+                                            <input type="text"
+                                                   class="form-control"
+                                                   id="grupo"
+                                                   name="grupo"
+                                                   list="grupos-sugeridos"
+                                                   value="{{ old('grupo', $producto->grupo ?? '') }}"
+                                                   placeholder="Ej: cf450mt, xpress-200s"
+                                                   autocomplete="off">
+                                            <datalist id="grupos-sugeridos">
+                                                @foreach($gruposExistentes ?? [] as $g)
+                                                    <option value="{{ $g }}">{{ $g }}</option>
+                                                @endforeach
+                                            </datalist>
+                                            <small class="text-muted">
+                                                Todos los productos con el mismo grupo se muestran como uno solo.
+                                                Usa un código único (ej: <code>cf450mt</code>).
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    {{-- Nombre del grupo --}}
+                                    <div class="col-lg-6">
+                                        <div class="mb-3">
+                                            <label class="form-label" for="grupo_nombre">
+                                                Nombre a mostrar en el catálogo
+                                            </label>
+                                            <input type="text"
+                                                   class="form-control"
+                                                   id="grupo_nombre"
+                                                   name="grupo_nombre"
+                                                   value="{{ old('grupo_nombre', $producto->grupo_nombre ?? '') }}"
+                                                   placeholder="Ej: CFMOTO 450MT">
+                                            <small class="text-muted">
+                                                Si lo dejas vacío, se usa el nombre del producto más antiguo del grupo.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    {{-- Color hex --}}
+                                    <div class="col-lg-6">
+                                        <div class="mb-3">
+                                            <label class="form-label" for="color_hex">Color (hex)</label>
+                                            <div class="input-group">
+                                                <input type="color"
+                                                       class="form-control form-control-color"
+                                                       id="color_hex_picker"
+                                                       value="{{ $producto->color_hex ?? '#122658' }}"
+                                                       onchange="document.getElementById('color_hex').value = this.value">
+                                                <input type="text"
+                                                       class="form-control"
+                                                       id="color_hex"
+                                                       name="color_hex"
+                                                       value="{{ $producto->color_hex ?? '' }}"
+                                                       placeholder="#122658"
+                                                       pattern="^#[0-9A-Fa-f]{6}$">
+                                            </div>
+                                            <small class="text-muted">
+                                                Se muestra como círculo en la card del catálogo.
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    {{-- Nombre del color --}}
+                                    <div class="col-lg-6">
+                                        <div class="mb-3">
+                                            <label class="form-label" for="color_nombre">Nombre del color</label>
+                                            <input type="text"
+                                                   class="form-control"
+                                                   id="color_nombre"
+                                                   name="color_nombre"
+                                                   value="{{ $producto->color_nombre ?? '' }}"
+                                                   placeholder="Ej: Azul metálico, Negro mate">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Destacado del grupo --}}
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        <div class="form-check form-switch form-switch-lg" dir="ltr">
+                                            <input type="checkbox"
+                                                   class="form-check-input"
+                                                   id="grupo_destacado"
+                                                   name="grupo_destacado"
+                                                   {{ ($producto->grupo_destacado ?? false) ? 'checked' : '' }}
+                                                   value="1">
+                                            <label class="form-check-label" for="grupo_destacado">
+                                                Destacar este grupo en el home
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Resumen de variantes del grupo --}}
+                                @if(!empty($producto->grupo))
+                                    @php
+                                        $variantesGrupo = \App\Models\Saprod::where('comercial', $producto->comercial)
+                                            ->where('grupo', $producto->grupo)
+                                            ->orderBy('id')
+                                            ->get();
+                                    @endphp
+
+                                    @if($variantesGrupo->count() > 0)
+                                        <hr>
+                                        <p class="fw-bold mb-2">
+                                            <i class="bi bi-layers me-1"></i>
+                                            Productos en el grupo <code>{{ $producto->grupo }}</code>
+                                            ({{ $variantesGrupo->count() }}):
+                                        </p>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach($variantesGrupo as $v)
+                                                <a href="{{ route('productos.edit', $v->id) }}"
+                                                   class="border rounded px-2 py-1 text-decoration-none d-inline-flex align-items-center gap-2 small
+                                  {{ $v->id === $producto->id ? 'border-primary' : '' }}">
+                            <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%;
+                                         background: {{ $v->color_hex ?? '#ccc' }};
+                                         border: 1px solid #ddd;"></span>
+                                                    {{ $v->descrip }}
+                                                    @if($v->color_nombre)
+                                                        <span class="text-muted">({{ $v->color_nombre }})</span>
+                                                    @endif
+                                                </a>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                @endif
+
+                            </div>
+                        </div>
+
+
                         @if($esmoto==1)
                             <div class="row">
                             <div class="col-lg-6">

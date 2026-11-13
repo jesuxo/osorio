@@ -130,7 +130,6 @@
                             <li class="nav-item">
                                 <a href="/productos" class="nav-link" data-key="t-list-view"> Productos</a>
                             </li>
-
                             @if(Auth::user()  and auth()->user()->can('menu_productos_existencias') )
                                 @php
                                     $comercialid = session('comercialid');
@@ -164,12 +163,17 @@
                                 </li>
                             @endif
 
-                            <li class="nav-item">
+                            <li class="nav-item d-none">
                                 <a href="/vistaSubirFactura" class="nav-link" data-key="t-sub-categories">
                                     Extraer Seriales
                                 </a>
                             </li>
 
+                            <li class="nav-item">
+                                <a href="{{ route('saprod.grupos') }}"  class="nav-link">
+                                    <i class="bi bi-palette"></i> Agrupación de motos
+                                </a>
+                            </li>
                         </ul>
                     </div>
                 </li>

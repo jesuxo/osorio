@@ -360,6 +360,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/buscar-modelos-moto', [SainstaController::class, 'buscarModelos'])->name('buscar.modelos.moto');
 
 
+    Route::middleware(['auth'])->prefix('saprod')->name('saprod.')->group(function () {
+        Route::get('/grupos', [SaprodController::class, 'grupos'])->name('grupos');
+        Route::post('/grupos/update', [SaprodController::class, 'gruposUpdate'])->name('grupos.update');
+    });
+
     Route::get('/buscarproducto/{codprod}/{comercial}', [SaprodController::class, 'buscarproductoget'])->name('buscarproductoget');
 
     Route::get('/verpermisos/{id?}', [PermissionController::class, 'showForm'])->name('permissions.assign');

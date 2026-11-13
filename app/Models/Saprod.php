@@ -14,6 +14,8 @@ class Saprod extends Model
         'marca','refere','codinst','observaciones','activo','clase','cilindraje',
         'esexento','exdecimal','preciodolarfijo', 'cantxempaq','volumen','peso','unidad',
         'preciod','preciod2','costod','costod2','costod3',
+        'grupo', 'grupo_nombre', 'grupo_destacado',
+        'color_hex', 'color_nombre'
     ];
 
     public function instancia(){
@@ -104,6 +106,68 @@ class Saprod extends Model
                 ->orWhere('codprod', 'LIKE', "%{$termino}%")
                 ->orWhere('marca', 'LIKE', "%{$termino}%")
                 ->orWhere('refere', 'LIKE', "%{$termino}%");
+        });
+    }
+
+    public function variantesDelGrupo()
+    {
+        if (empty($this->grupo)) {
+            return collect([$this]);
+        }
+
+        return Saprod::where('comercial', $this->comercial)
+            ->where('activo', 1)
+            ->where('grupo', $this->grupo)
+            ->orderBy('id')
+            ->get();
+    }
+
+    /**
+     * Scope: productos "representantes" del catálogo.
+     * Si un producto tiene grupo, solo el de menor `id` del grupo aparece.
+     * Los que no tienen grupo, aparecen siempre.
+     */
+    public function scopeCatalogo($query)
+    {
+        return $query->where(function ($q) {
+            // Sin grupo → siempre visible
+            $q->whereNull('grupo')
+                ->orWhere('grupo', '')
+                // Con grupo → solo el representante (MIN id)
+                ->orWhereIn('saprod.id', function ($sub) {
+                    $sub->selectRaw('MIN(s2.id)')
+                        ->from('saprod as s2')
+                        ->whereNotNull('s2.grupo')
+                        ->where('s2.grupo', '<>', '')
+                        ->groupBy('s2.grupo');
+                });
+        });
+    }
+
+    /**
+     * Scope para obtener los "grupos" con al menos un producto visible.
+     */
+    public function scopeVariantesDeGrupo($query, string $grupo)
+    {
+        return $query->where('grupo', $grupo);
+    }
+
+    /**
+     * Nombre a mostrar en el catálogo para un representante.
+     */
+    public function getNombreCatalogoAttribute()
+    {
+        return $this->grupo_nombre ?: $this->descrip;
+    }
+
+    public function scopeUnicosPorGrupo($query, int $comercial = 1)
+    {
+        return $query->whereIn('id', function ($sub) use ($comercial) {
+            $sub->selectRaw('MIN(s2.id)')
+                ->from('saprod as s2')
+                ->where('s2.comercial', $comercial)
+                ->where('s2.activo', 1)
+                ->groupBy('s2.grupo');
         });
     }
 }

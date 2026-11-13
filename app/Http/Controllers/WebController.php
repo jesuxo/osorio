@@ -44,10 +44,14 @@ class WebController extends Controller
         // Motos destacadas (para la sección del home)
         $motosDestacadas = Saprod::where('comercial', 1)
             ->where('activo', 1)
+            ->unicosPorGrupo(1)
             ->whereHas('instancia', fn($q) => $q->where('codalte', 'LIKE', '01.%'))
+            ->orderByDesc('grupo_destacado')
             ->orderByDesc('updated_at')
             ->limit(8)
             ->get();
+
+        $motosDestacadas->each(fn($m) => $m->variantes = $m->variantesDelGrupo());
 
 
 // 1. Traer las marcas (nivel 2 bajo MOTOS)
@@ -146,6 +150,13 @@ class WebController extends Controller
             })
             ->where('p.comercial', 1)
             ->where('p.activo', 1)
+            ->whereIn('p.id', function ($sub) {
+                $sub->selectRaw('MIN(s2.id)')
+                    ->from('saprod as s2')
+                    ->where('s2.comercial', 1)
+                    ->where('s2.activo', 1)
+                    ->groupByRaw("COALESCE(NULLIF(s2.grupo, ''), CONCAT('__individual_', s2.id))");
+            })
             ->groupBy('i2.codinst')
             ->select('i2.codinst', DB::raw('COUNT(DISTINCT p.codprod) as total'))
             ->pluck('total', 'i2.codinst');
@@ -176,6 +187,7 @@ class WebController extends Controller
 
         $query = Saprod::where('comercial', 1)
             ->where('activo', 1)
+            ->unicosPorGrupo(1)
             ->whereHas('instancia', fn($q) => $q->where('codalte', 'LIKE', $codalteBase . '%'));
 
         if ($estilo != '') {
@@ -213,6 +225,11 @@ class WebController extends Controller
         }
 
         $motos = $query->paginate(12)->appends($request->query());
+
+        $motos->getCollection()->transform(function ($moto) {
+            $moto->variantes = $moto->variantesDelGrupo();
+            return $moto;
+        });
 
         $marcaActiva = null;
         if ($marcaCodalte) {
@@ -334,21 +351,31 @@ class WebController extends Controller
             ->with('instancia')
             ->firstOrFail();
 
-        // Guardar en vistos recientemente
+        // Cargar variantes del mismo grupo
+        $variantes = $producto->variantesDelGrupo();
+
+        // Nombre a mostrar (grupo o producto)
+        $nombreCatalogo = $producto->grupo_nombre ?: $producto->descrip;
+
+        // Relacionados: excluyendo el mismo grupo
+        $relacionados = Saprod::where('comercial', 1)
+            ->where('activo', 1)
+            ->unicosPorGrupo(1)
+            ->where('codinst', $producto->codinst)
+            ->where('codprod', '!=', $producto->codprod)
+            ->when($producto->grupo, fn($q) => $q->where('grupo', '!=', $producto->grupo))
+            ->limit(4)
+            ->get();
+
+        // Vistos recientemente
         $vistos = session('productos_vistos', []);
         $vistos = array_diff($vistos, [$codprod]);
         array_unshift($vistos, $codprod);
         session(['productos_vistos' => array_slice($vistos, 0, 8)]);
 
-        // Relacionados: misma instancia
-        $relacionados = Saprod::where('comercial', 1)
-            ->where('activo', 1)
-            ->where('codinst', $producto->codinst)
-            ->where('codprod', '!=', $codprod)
-            ->limit(4)
-            ->get();
-
-        return view('web.producto', compact('producto', 'relacionados'));
+        return view('web.producto', compact(
+            'producto', 'variantes', 'nombreCatalogo', 'relacionados'
+        ));
     }
 
     public function addToCart(Request $request)

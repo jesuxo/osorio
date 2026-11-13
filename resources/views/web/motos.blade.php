@@ -3,7 +3,39 @@
 @section('title', 'Motos · Osorio Group')
 
 @section('content')
-
+    <style>
+        .filtro-titulo, .filtro-opcion{
+            color: #fff;
+        }
+        /* ============================================================ */
+        /* CHIPS DE FILTROS ACTIVOS                                      */
+        /* ============================================================ */
+        .filtro-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            background: #122658;
+            color: #fff;
+            border: 1px solid #122658;
+            border-radius: 50px;
+            padding: .3rem .75rem;
+            font-size: .78rem;
+            text-decoration: none;
+            transition: all .15s ease;
+        }
+        .filtro-chip:hover {
+            background: #fff;
+            color: #122658;
+            border-color: #122658;
+        }
+        .filtro-chip i {
+            font-size: .65rem;
+            opacity: .8;
+        }
+        .filtro-chip:hover i {
+            opacity: 1;
+        }
+    </style>
     {{-- ============================================================ --}}
     {{-- HEADER DINÁMICO --}}
     {{-- ============================================================ --}}
@@ -73,6 +105,16 @@
                             </select>
                         </div>
                     </div>
+
+                    {{-- 🔥 NUEVO: chips de filtros activos --}}
+                    @include('web.partials.filtros-activos', [
+                        'marcaActiva' => $marcaActiva,
+                        'marcaCodalte'=> $marcaCodalte,
+                        'estilo'      => $estilo,
+                        'precioDesde' => $precioDesde,
+                        'precioHasta' => $precioHasta,
+                        'busqueda'    => $busqueda,
+                    ])
 
                     <div id="grid-wrapper">
                         <div id="grid-loader" class="loader-overlay">
@@ -365,13 +407,37 @@
                         const headerActual = document.getElementById('header-motos');
                         if (headerActual && data.header) headerActual.outerHTML = data.header;
 
-                        // Sidebar (desktop + offcanvas móvil)
+                        // Sidebar
                         if (data.sidebar) {
                             document.querySelectorAll('.sidebar-filtros-container').forEach(el => {
                                 const wrapper = document.createElement('div');
                                 wrapper.innerHTML = data.sidebar.trim();
-                                el.replaceWith(wrapper.firstElementChild);
+                                const nuevoCard = wrapper.querySelector('.sidebar-filtros-container');
+                                if (nuevoCard) el.replaceWith(nuevoCard);
                             });
+                        }
+
+                        // 🔥 Chips de filtros activos
+                        const contenedorFiltros = document.getElementById('filtros-activos');
+                        const existeNuevo = data.filtrosActivos && data.filtrosActivos.trim() !== '';
+
+                        if (existeNuevo) {
+                            // Si ya existe el contenedor, lo reemplaza; si no, lo inserta antes del grid-wrapper
+                            if (contenedorFiltros) {
+                                const wrapper = document.createElement('div');
+                                wrapper.innerHTML = data.filtrosActivos.trim();
+                                const nuevo = wrapper.firstElementChild;
+                                if (nuevo) contenedorFiltros.replaceWith(nuevo);
+                            } else {
+                                const wrapper = document.createElement('div');
+                                wrapper.innerHTML = data.filtrosActivos.trim();
+                                const nuevo = wrapper.firstElementChild;
+                                const gridWrapper = document.getElementById('grid-wrapper');
+                                if (nuevo && gridWrapper) gridWrapper.parentNode.insertBefore(nuevo, gridWrapper);
+                            }
+                        } else if (contenedorFiltros) {
+                            // Si ya no hay filtros activos, quitar el bloque entero
+                            contenedorFiltros.remove();
                         }
 
                         // Grid

@@ -1,11 +1,6 @@
 {{-- resources/views/web/partials/sidebar-filtros.blade.php --}}
 {{-- Requiere: $marcas, $estilos, $marcaCodalte, $estilo,
               $precioDesde, $precioHasta, $rango --}}
-<style>
-    .filtro-titulo, .filtro-opcion{
-        color: #fff;
-    }
-</style>
 <div class="card border-0 shadow-sm sidebar-filtros-container" style="background: #122658;
   color: white;">
     <div class="card-body p-3">

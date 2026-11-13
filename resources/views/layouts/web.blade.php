@@ -32,6 +32,194 @@
         .card-producto:hover { border-color: var(--cf-teal); transform: translateY(-2px); }
         .card-producto img { aspect-ratio: 1/1; object-fit: contain; padding: 1rem; background: var(--cf-gray); }
         .badge-cat { background: var(--cf-gray); color: var(--cf-dark); font-size: .75rem; font-weight: 500; padding: .35rem .75rem; border-radius: 50px; }
+        /* ============================================================ */
+        /* FOOTER PRO                                                    */
+        /* ============================================================ */
+        .footer-pro {
+            background: var(--cf-dark);
+            color: #fff;
+            margin-top: 4rem;
+            position: relative;
+        }
+
+        /* Bloque de marca */
+        .footer-desc {
+            color: rgba(255, 255, 255, 0.72);
+            font-size: .88rem;
+            line-height: 1.6;
+        }
+
+        .footer-social-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            text-decoration: none;
+            transition: all .2s ease;
+            font-size: 1rem;
+        }
+        .footer-social-link:hover {
+            background: var(--cf-teal);
+            color: var(--cf-dark);
+            transform: translateY(-2px);
+        }
+        .footer-social-wsp:hover {
+            background: #25D366;
+            color: #fff;
+        }
+
+        /* Títulos */
+        .footer-titulo {
+            color: #fff;
+            font-size: .82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-bottom: 1rem;
+            position: relative;
+            padding-bottom: .5rem;
+        }
+        .footer-titulo::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 28px;
+            height: 2px;
+            background: var(--cf-teal);
+        }
+
+        /* Listas */
+        .footer-lista {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .footer-lista li {
+            margin-bottom: .55rem;
+            font-size: .88rem;
+        }
+        .footer-lista li a {
+            color: rgba(255, 255, 255, 0.72);
+            text-decoration: none;
+            transition: color .15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: .35rem;
+        }
+        .footer-lista li a:hover {
+            color: var(--cf-teal);
+        }
+        .footer-lista li a.footer-ver-todas {
+            color: var(--cf-teal);
+            font-weight: 600;
+            font-size: .82rem;
+            margin-top: .5rem;
+        }
+        .footer-lista li a.footer-ver-todas:hover {
+            color: #fff;
+        }
+
+        /* Contador de tiendas */
+        .footer-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: .68rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.85);
+            margin-left: .25rem;
+        }
+
+        /* Contacto */
+        .footer-contacto li {
+            display: flex;
+            align-items: flex-start;
+            gap: .55rem;
+            color: rgba(255, 255, 255, 0.72);
+            line-height: 1.5;
+        }
+        .footer-contacto li i {
+            color: var(--cf-teal);
+            font-size: .95rem;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+        .footer-contacto li a {
+            color: rgba(255, 255, 255, 0.72);
+        }
+        .footer-contacto li a:hover {
+            color: var(--cf-teal);
+        }
+
+        /* Bloque de confianza */
+        .footer-trust {
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .footer-trust-item {
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.85);
+            text-align: left;
+        }
+        .footer-trust-item i {
+            font-size: 1.4rem;
+            color: var(--cf-teal);
+        }
+        .footer-trust-item strong {
+            display: block;
+            font-size: .85rem;
+            color: #fff;
+        }
+        .footer-trust-item small {
+            display: block;
+            font-size: .72rem;
+            color: rgba(255, 255, 255, 0.55);
+        }
+
+        /* Barra inferior */
+        .footer-bottom {
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+        .footer-legal {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: .78rem;
+        }
+        .footer-legal-links li a {
+            color: rgba(255, 255, 255, 0.55);
+            text-decoration: none;
+            font-size: .78rem;
+            transition: color .15s ease;
+        }
+        .footer-legal-links li a:hover {
+            color: var(--cf-teal);
+        }
+
+        /* Responsive */
+        @media (max-width: 767.98px) {
+            .footer-pro .row.py-5 {
+                padding-top: 2.5rem !important;
+                padding-bottom: 2.5rem !important;
+            }
+            .footer-trust-item {
+                justify-content: flex-start;
+            }
+            .footer-legal-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
     </style>
     @yield('css')
 </head>
@@ -69,13 +257,13 @@
                         @php
                             $marcasMotossession = session('marcasMotos');
                             $marcasMotossession = isset($marcasMotossession)? $marcasMotossession : [] ;
-                            if(count($marcasMotossession) ==0 and isset($marcas)){
+                            if(count($marcasMotossession) ==0 and isset($marcas) and count($marcas)>0){
                                 $marcasMotossession = $marcas;
                             }
                         @endphp
                         @foreach($marcasMotossession as $m)
                             <li>
-                                <a class="dropdown-item" href="#">
+                                <a class="dropdown-item" href="{{ route('web.motos', ['marca' => $m->codalte]) }}">
                                     {{ $m->nombre_corto }}
                                 </a>
                             </li>
@@ -91,9 +279,14 @@
                 <li class="nav-item"><a class="nav-link" href="#">Lubricantes</a></li>
                 <li class="nav-item"><a class="nav-link" href="#">Boutique</a></li>
             </ul>
-            <form class="d-flex me-3" action="#" method="GET">
-                <input class="form-control form-control-sm" name="q" placeholder="Buscar producto..." value="{{ request('q') }}">
-                <button class="btn btn-cf btn-sm ms-2" type="submit"><i class="bi bi-search"></i></button>
+            <form class="d-flex me-3" action="{{ route('web.motos') }}" method="GET">
+                <input class="form-control form-control-sm"
+                       name="q"
+                       placeholder="Buscar moto, repuesto..."
+                       value="{{ request('q') }}">
+                <button class="btn btn-cf btn-sm ms-2" type="submit">
+                    <i class="bi bi-search"></i>
+                </button>
             </form>
             <a href="{{ route('web.cart.view') }}"
                class="btn btn-cf-outline btn-sm me-2 position-relative d-none d-lg-inline-flex"
@@ -116,25 +309,8 @@
     @yield('content')
 </main>
 
-{{-- FOOTER --}}
-<footer style="background: var(--cf-dark); color: #fff;" class="py-4 mt-5">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-4">
-                <h6 class="fw-bold"><span style="color: var(--cf-teal);">CFMOTO</span> Táchira</h6>
-                <p class="small mb-0">San Cristóbal, Táchira · RIF J-XXXXXXXX-X</p>
-            </div>
-            <div class="col-md-4">
-                <h6 class="fw-bold">Contacto</h6>
-                <p class="small mb-0"><i class="bi bi-whatsapp"></i> +58 412-XXX-XXXX</p>
-                <p class="small mb-0"><i class="bi bi-instagram"></i> @cfmoto_tachira</p>
-            </div>
-            <div class="col-md-4 text-md-end">
-                <p class="small mb-0">&copy; {{ date('Y') }} Osorio Group</p>
-            </div>
-        </div>
-    </div>
-</footer>
+@include('web.partials.footer')
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 @yield('scripts')

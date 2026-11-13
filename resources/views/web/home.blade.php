@@ -11,6 +11,9 @@
             box-sizing: border-box;
         }
 
+        .dropdown-item.active, .dropdown-item:active{
+            background-color: #2dd1ff;
+        }
         /* Contenedor del Banner Principal */
         .banner-container {
             position: relative;
@@ -236,9 +239,6 @@
         </div>
     </div>
 
-
-
-
     {{-- ============================================================ --}}
     {{-- FRANJA DE DEPARTAMENTOS (derivada de sainsta) --}}
     {{-- ============================================================ --}}
@@ -353,6 +353,42 @@
             </div>
         </section>
     @endif
+
+
+    <section class="py-5" style="background: #f8f9fa;">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="fw-bold mb-2">Nuestras sucursales</h2>
+                <p class="text-secondary mb-0">11 tiendas en Táchira · Envíos a toda Venezuela</p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <h5 class="fw-bold mb-3">La Fría <span class="text-secondary small">3 tiendas</span></h5>
+                    @foreach([
+                        ['nombre' => 'Osorio Group', 'tipo' => 'Multimarca', 'dir' => 'Av. Aeropuerto', 'ig' => '@osoriogroup'],
+                        ['nombre' => 'Bera La Fría', 'tipo' => 'Bera',       'dir' => 'Av. Aeropuerto', 'ig' => '@vera_tachira_lafria'],
+                        ['nombre' => 'Bel Motos',    'tipo' => 'Bel Motos',  'dir' => 'Av. Aeropuerto', 'ig' => '@belmotoosorio'],
+                    ] as $suc)
+                        <div class="card border-0 shadow-sm mb-2">
+                            <div class="card-body p-3">
+                                <small class="text-secondary">{{ $suc['tipo'] }}</small>
+                                <h6 class="fw-bold mb-1">{{ $suc['nombre'] }}</h6>
+                                <p class="small mb-1 text-secondary">{{ $suc['dir'] }}</p>
+                                <a href="https://instagram.com/{{ str_replace('@', '', $suc['ig']) }}"
+                                   target="_blank"
+                                   class="small text-decoration-none">
+                                    <i class="bi bi-instagram"></i> {{ $suc['ig'] }}
+                                </a>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                {{-- Repite para San Cristóbal y San Antonio --}}
+            </div>
+        </div>
+    </section>
 
     {{-- ============================================================ --}}
     {{-- MOTOS DESTACADAS --}}

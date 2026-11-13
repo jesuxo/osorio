@@ -103,8 +103,6 @@ class WebController extends Controller
         return view('web.home', compact('motoHero', 'departamentos', 'motosDestacadas', 'marcasMotos'));
     }
 
-
-
     public function motos(Request $request)
     {
         $marcaCodalte = $request->get('marca', '');
@@ -254,6 +252,14 @@ class WebController extends Controller
                     'precioHasta'  => $precioHasta,
                     'rango'        => $rango,
                 ])->render(),
+                'filtrosActivos' => view('web.partials.filtros-activos', [
+                    'marcaActiva'  => $marcaActiva,
+                    'marcaCodalte' => $marcaCodalte,
+                    'estilo'       => $estilo,
+                    'precioDesde'  => $precioDesde,
+                    'precioHasta'  => $precioHasta,
+                    'busqueda'     => $busqueda,
+                ])->render(),
                 'html'      => view('web.partials.grid-motos', [
                     'motos'       => $motos,
                     'marcaActiva' => $marcaActiva,
@@ -367,5 +373,20 @@ class WebController extends Controller
             'success'    => true,
             'cart_count' => array_sum(array_column($cart, 'cantidad')),
         ]);
+    }
+
+    public function viewCart()
+    {
+        $cart = session('cart', []);
+        $total = collect($cart)->sum(fn($i) => $i['precio'] * $i['cantidad']);
+        return view('web.cart', compact('cart', 'total'));
+    }
+
+    public function removeFromCart($id)
+    {
+        $cart = session('cart', []);
+        unset($cart[$id]);
+        session(['cart' => $cart]);
+        return redirect()->route('web.cart.view')->with('success', 'Producto eliminado');
     }
 }

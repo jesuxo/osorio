@@ -43,18 +43,36 @@
         <a class="navbar-brand fw-bold" href="{{ route('web.home') }}">
             <img src="{{ URL::asset('build/images/logolateral.png') }}" alt="Osorio Group" height="40">
         </a>
-        <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navWeb">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+        {{-- Carrito + Hamburguesa en móvil (siempre visibles) --}}
+        <div class="d-flex align-items-center gap-2 order-lg-3">
+
+            {{-- Carrito móvil: solo visible en < lg --}}
+            <a href="{{ route('web.cart.view') }}"
+               class="btn btn-cf-outline btn-sm position-relative d-lg-none"
+               aria-label="Carrito">
+                <i class="bi bi-cart3"></i>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                      id="cartCountMobile">0</span>
+            </a>
+
+            <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navWeb"
+                    aria-controls="navWeb" aria-expanded="false" aria-label="Abrir menú" style="padding: 3px;
+  font-size: 16px !important;">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
         <div class="collapse navbar-collapse" id="navWeb">
             <ul class="navbar-nav mx-auto">
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Motos</a>
                     <ul class="dropdown-menu">
-                        @foreach($lineasMotos ?? [] as $linea)
+                        @php
+                            $marcasMotossession = session('marcasMotos');
+                        @endphp
+                        @foreach($marcasMotossession as $m)
                             <li>
                                 <a class="dropdown-item" href="#">
-                                    {{ $linea->descrip }}
+                                    {{ $m->nombre_corto }}
                                 </a>
                             </li>
                         @endforeach
@@ -73,9 +91,12 @@
                 <input class="form-control form-control-sm" name="q" placeholder="Buscar producto..." value="{{ request('q') }}">
                 <button class="btn btn-cf btn-sm ms-2" type="submit"><i class="bi bi-search"></i></button>
             </form>
-            <a href="#" class="btn btn-cf-outline btn-sm me-2 position-relative">
+            <a href="{{ route('web.cart.view') }}"
+               class="btn btn-cf-outline btn-sm me-2 position-relative d-none d-lg-inline-flex"
+               aria-label="Carrito">
                 <i class="bi bi-cart3"></i>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cartCount">0</span>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                      id="cartCount">0</span>
             </a>
             @auth
                 <a href="{{ route('index') }}" class="btn btn-cf btn-sm">Panel</a>

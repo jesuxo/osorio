@@ -98,6 +98,8 @@ class WebController extends Controller
             ->filter(fn($m) => $m->total_motos > 0)
             ->values();
 
+        session(['marcasMotos'=>$marcasMotos]);
+
         return view('web.home', compact('motoHero', 'departamentos', 'motosDestacadas', 'marcasMotos'));
     }
 

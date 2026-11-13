@@ -1,8 +1,13 @@
 {{-- resources/views/web/partials/sidebar-filtros.blade.php --}}
 {{-- Requiere: $marcas, $estilos, $marcaCodalte, $estilo,
               $precioDesde, $precioHasta, $rango --}}
-
-<div class="card border-0 shadow-sm sidebar-filtros-container">
+<style>
+    .filtro-titulo, .filtro-opcion{
+        color: #fff;
+    }
+</style>
+<div class="card border-0 shadow-sm sidebar-filtros-container" style="background: #122658;
+  color: white;">
     <div class="card-body p-3">
 
         {{-- Header con limpiar --}}
@@ -24,7 +29,7 @@
         {{-- ============================================================ --}}
         @if(isset($estilos) && $estilos->count())
             <div class="filtro-bloque">
-                <div class="filtro-titulo">Estilo</div>
+                <div class="filtro-titulo" style="">Estilo</div>
                 <div>
                     <a href="{{ route('web.motos', array_merge(request()->except('estilo', 'page'))) }}"
                        class="chip-estilo-filtro filtro-link {{ !$estilo ? 'activo' : '' }}">
@@ -76,7 +81,7 @@
             </div>
 
             @if($rango && $rango->min)
-                <small class="text-secondary d-block mb-2" style="font-size: .72rem;">
+                <small class="text-secondary d-block mb-2" style="color:white !important; font-size: .72rem;">
                     Rango disponible:
                     ${{ number_format($rango->min, 0, ',', '.') }}
                     – ${{ number_format($rango->max, 0, ',', '.') }}

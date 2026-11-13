@@ -231,8 +231,8 @@
         <!-- Puntos Inferiores -->
         <div class="banner-dots">
             <div class="dot active"></div>
-            <!--<div class="dot"></div>
-            <div class="dot"></div>-->
+          <div class="dot"></div>
+            <!--<div class="dot"></div>-->
         </div>
     </div>
 
@@ -294,8 +294,9 @@
                         e importador de <span style="color: var(--cf-teal);">repuestos</span>
                     </h1>
                     <p class="lead text-secondary mb-4" style="max-width: 520px;">
-                        Elige tu moto en línea y cómprala desde cualquier estado del país.
-                        Contamos con envíos a toda Venezuela.
+                        Adquiere tu moto en linea desde cualquier parte del pais.
+                        Envios a toda venezuela.
+
                     </p>
                     <div class="d-flex gap-2 flex-wrap">
                         <a href="{{ route('web.motos') }}" class="btn btn-cf btn-lg px-4">
@@ -303,6 +304,9 @@
                         </a> <!-- { { route('web.catalogo', ['familia' => '45']) }}-->
                         <a href="#" class="btn btn-cf-outline btn-lg px-4">
                             <i class="bi bi-tools me-1"></i> Repuestos
+                        </a>
+                        <a href="#" class="btn btn-cf-outline btn-lg px-4">
+                            <i class="bi bi-shop me-1"></i> Sucursales
                         </a>
                     </div>
                 </div>
@@ -340,9 +344,7 @@
                                class="d-block border rounded-3 p-3 text-center text-decoration-none card-marca h-100">
                                 <div class="fw-bold mb-1" style="color: var(--cf-dark); font-size: .95rem;">
                                     <img src="{{ asset('build/images/brands/'. $m->imagen) }}" style="max-width: 100px">
-
                                 </div>
-
                             </a>
                         </div>
                         @php if($imoto>12)break; @endphp
@@ -534,6 +536,24 @@
 
 @section('scripts')
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Estado inicial del carrito desde sesión
+            const cartCount = {{ count(session('cart', [])) }};
+
+            document.querySelectorAll('#cartCount, #cartCountMobile').forEach(el => {
+                el.textContent = cartCount;
+                el.style.display = cartCount > 0 ? '' : 'none';
+            });
+        });
+
+        // Helper global para actualizar el contador cuando se añade al carrito
+        window.actualizarContadorCarrito = function (total) {
+            document.querySelectorAll('#cartCount, #cartCountMobile').forEach(el => {
+                el.textContent = total;
+                el.style.display = total > 0 ? '' : 'none';
+            });
+        };
+
         $(document).ready(function() {
             const slides = $('.slide');
             const dots = $('.dot');

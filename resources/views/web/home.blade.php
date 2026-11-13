@@ -331,20 +331,21 @@
                         Ver todas <i class="bi bi-arrow-right"></i>
                     </a>
                 </div>
-
+                @php $imoto=0; @endphp
                 <div class="row g-3">
                     @foreach($marcasMotos as $m)
+                        @php $imoto++; @endphp
                         <div class="col-lg-2 col-md-3 col-4">
                             <a href="{{ route('web.motos', ['marca' => $m->codalte]) }}"
                                class="d-block border rounded-3 p-3 text-center text-decoration-none card-marca h-100">
                                 <div class="fw-bold mb-1" style="color: var(--cf-dark); font-size: .95rem;">
                                     <img src="{{ asset('build/images/brands/'. $m->imagen) }}" style="max-width: 100px">
-                                    <br>
-                                    {{ $m->nombre_corto }}
+
                                 </div>
 
                             </a>
                         </div>
+                        @php if($imoto>12)break; @endphp
                     @endforeach
                 </div>
             </div>

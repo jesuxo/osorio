@@ -279,7 +279,7 @@
         <div class="container">
             <div class="row align-items-center g-5">
                 <div class="col-lg-6 text-center">
-                    <img src="{{ URL::asset('build/images/osoriowall.png') }}"
+                    <img src="{{ URL::asset('build/images/osoriowall.jpg') }}"
                          alt="CFMOTO"
                          class="img-fluid"
                          style="max-height: 440px; border-radius: 5px; object-fit: contain;">

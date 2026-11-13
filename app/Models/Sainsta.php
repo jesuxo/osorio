@@ -9,7 +9,7 @@ class Sainsta extends Model
 {
     use HasFactory;
     protected $table    = 'sainsta';
-    protected $fillable = ['codinst', 'descrip', 'insPadre', 'nivel', 'tipoIns', 'DEsComp', 'codalte', 'desseri'];
+    protected $fillable = ['codinst', 'descrip', 'insPadre', 'nivel', 'tipoIns', 'DEsComp', 'codalte', 'desseri', 'imagen'];
 
     public function padre(){
         return $this->belongsTo(Sainsta::class, 'insPadre', 'codinst') ;

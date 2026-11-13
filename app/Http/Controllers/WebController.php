@@ -91,6 +91,7 @@ class WebController extends Controller
         $marcasMotos = $marcasMotos
             ->map(function ($m) use ($conteos) {
                 $m->nombre_corto = $m->descrip;
+                $m->imagen       = $m->imagen;
                 $m->total_motos  = $conteos[$m->codinst] ?? 0;
                 return $m;
             })

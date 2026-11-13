@@ -338,11 +338,11 @@
                             <a href="{{ route('web.motos', ['marca' => $m->codalte]) }}"
                                class="d-block border rounded-3 p-3 text-center text-decoration-none card-marca h-100">
                                 <div class="fw-bold mb-1" style="color: var(--cf-dark); font-size: .95rem;">
+                                    <img src="{{ asset('build/images/brands/'. $m->imagen) }}" style="max-width: 100px">
+                                    <br>
                                     {{ $m->nombre_corto }}
                                 </div>
-                                <small class="text-secondary" style="font-size: .75rem;">
-                                    {{ $m->total_motos }} {{ $m->total_motos == 1 ? 'modelo' : 'modelos' }}
-                                </small>
+
                             </a>
                         </div>
                     @endforeach

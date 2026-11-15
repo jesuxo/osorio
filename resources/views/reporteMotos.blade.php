@@ -661,10 +661,11 @@
         <div class="col-lg-4">
             {{-- Filtro de fechas --}}
             <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-primary text-white ">
                     <h5 class="card-title mb-0">
                         <i class="bi bi-funnel"></i> Filtros de Búsqueda
                     </h5>
+
                 </div>
                 <div class="card-body">
                     <form method="post" name="form1" id="form1" action="/reporte/motos">
@@ -689,84 +690,98 @@
             </div>
 
             {{-- Resumen por sucursal --}}
-            @foreach($sucursales as $indexsucu => $sucursal)
-                <div class="card mb-3">
-                    <div class="card-body">
+            <div id="sucursalesreporte">
+                <div class="card mt-3" >
+                    <div class="card-header bg-primary text-white ">
                         <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <h5 class="card-title mb-1">{{ $sucursal }}</h5>
-                                <span class="stats-total">{{ number_format($ventaSucursal[$indexsucu], 0) }}</span>
-                                <small class="text-muted"> motos vendidas</small>
-                                @if($totalUnidades > 0)
-                                    <span class="badge bg-primary ms-2">
-                                        {{ number_format(($ventaSucursal[$indexsucu] / $totalUnidades) * 100, 1) }}%
-                                    </span>
-                                @endif
-                            </div>
-                            <a href="javascript:;" data-bs-toggle="modal" data-bs-target="#ver{{ $indexsucu }}"
-                               class="btn btn-outline-primary btn-sm">
-                                <i class="bi bi-eye"></i> Ver Detalle
-                            </a>
+                            <small>Venta x sucursal{{ $fecha1 }} {{ ($fecha1!=$fecha2)? ' al '.$fecha2:'' }}</small>
+                            <button type="button" class="btn btn-sm btn-outline-primary me-2"
+                                    style="color: white !important;"
+                                    onclick="  $(this).hide(); $('.botondetalle').hide(); capture('#sucursalesreporte')">
+                                <i class="bi bi-camera"></i> Capturar
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <div class="modal fade" id="ver{{ $indexsucu }}" aria-hidden="true" tabindex="-1">
-                    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-                        <div class="modal-content">
-                            <div class="modal-header" style="background-color: #0072c5; color: white;">
-                                <h5 class="modal-title text-white">
-                                    <i class="bi bi-shop"></i> Detalle de Ventas - {{ $sucursal }}
-                                </h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                @foreach($sucursales as $indexsucu => $sucursal)
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h5 class="card-title mb-1">{{ $sucursal }}</h5>
+                                    <span class="stats-total">{{ number_format($ventaSucursal[$indexsucu], 0) }}</span>
+                                    <small class="text-muted"> motos vendidas</small>
+                                    @if($totalUnidades > 0)
+                                        <span class="badge bg-primary ms-2">
+                                            {{ number_format(($ventaSucursal[$indexsucu] / $totalUnidades) * 100, 1) }}%
+                                        </span>
+                                    @endif
+                                </div>
+                                <a href="javascript:;" data-bs-toggle="modal" data-bs-target="#ver{{ $indexsucu }}"
+                                   class="btn btn-outline-primary btn-sm botondetalle">
+                                    <i class="bi bi-eye"></i> Ver Detalle
+                                </a>
                             </div>
-                            <div class="modal-body">
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-hover">
-                                        <thead class="table-primary">
-                                        <tr>
-                                            <th>Fecha</th>
-                                            <th>Cliente</th>
-                                            <th>Documento</th>
-                                            <th>Producto</th>
-                                            <th class="text-center">Cantidad</th>
-                                            <th class="text-end">Precio</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        @if(isset($ventaSucursalClientes[$indexsucu]['clientes']) && count($ventaSucursalClientes[$indexsucu]['clientes']) > 0)
-                                            @foreach($ventaSucursalClientes[$indexsucu]['clientes'] as $row)
-                                                <tr>
-                                                    <td>{{ $row['fecha'] }}</td>
-                                                    <td>{{ $row['cliente'] }}</td>
-                                                    <td class="text-center">{{ $row['NumeroD'] }}</td>
-                                                    <td>{{ $row['producto'] }}</td>
-                                                    <td class="text-center">{{ number_format($row['cantidad'], 0) }}</td>
-                                                    <td class="text-end">$ {{ number_format($row['costod'], 2, ',', '.') }}</td>
-                                                </tr>
-                                            @endforeach
-                                        @else
+                        </div>
+                    </div>
+
+                    <div class="modal fade" id="ver{{ $indexsucu }}" aria-hidden="true" tabindex="-1">
+                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header" style="background-color: #0072c5; color: white;">
+                                    <h5 class="modal-title text-white">
+                                        <i class="bi bi-shop"></i> Detalle de Ventas - {{ $sucursal }}
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover">
+                                            <thead class="table-primary">
                                             <tr>
-                                                <td colspan="6" class="text-center py-4">
-                                                    <i class="bi bi-inbox" style="font-size: 2rem;"></i>
-                                                    <p class="mt-2">No hay ventas registradas</p>
-                                                </td>
+                                                <th>Fecha</th>
+                                                <th>Cliente</th>
+                                                <th>Documento</th>
+                                                <th>Producto</th>
+                                                <th class="text-center">Cantidad</th>
+                                                <th class="text-end">Precio</th>
                                             </tr>
-                                        @endif
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                            @if(isset($ventaSucursalClientes[$indexsucu]['clientes']) && count($ventaSucursalClientes[$indexsucu]['clientes']) > 0)
+                                                @foreach($ventaSucursalClientes[$indexsucu]['clientes'] as $row)
+                                                    <tr>
+                                                        <td>{{ $row['fecha'] }}</td>
+                                                        <td>{{ $row['cliente'] }}</td>
+                                                        <td class="text-center">{{ $row['NumeroD'] }}</td>
+                                                        <td>{{ $row['producto'] }}</td>
+                                                        <td class="text-center">{{ number_format($row['cantidad'], 0) }}</td>
+                                                        <td class="text-end">$ {{ number_format($row['costod'], 2, ',', '.') }}</td>
+                                                    </tr>
+                                                @endforeach
+                                            @else
+                                                <tr>
+                                                    <td colspan="6" class="text-center py-4">
+                                                        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                                                        <p class="mt-2">No hay ventas registradas</p>
+                                                    </td>
+                                                </tr>
+                                            @endif
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        <i class="bi bi-x-circle"></i> Cerrar
+                                    </button>
                                 </div>
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                    <i class="bi bi-x-circle"></i> Cerrar
-                                </button>
-                            </div>
                         </div>
                     </div>
-                </div>
-            @endforeach
-
+                @endforeach
+            </div>
             {{-- Filtro por marca padre --}}
             @if(isset($instanciaspadre) && count($instanciaspadre) > 0)
                 <hr>

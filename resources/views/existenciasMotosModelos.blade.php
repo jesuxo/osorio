@@ -28,8 +28,8 @@
                          <a target="_blank" href="/existencia/motos/modelos/{{$inspadre}}"><i class="bi bi-printer" style="margin-right: 5px"></i> Imprimir</a>
                     @endif
 
-                    <button type="button" class="btn btn-sm btn-light me-2"
-                            onclick=" $('.showModalModelos').hide(); capture('#tablamodelosmotos')">
+                    <button type="button" class="btn btn-sm btn-light me-2" style="margin-left: 20px"
+                            onclick="   capture('#tablamodelosmotos')">
                         <i class="bi bi-camera"></i> Capturar
                     </button>
                 </div>

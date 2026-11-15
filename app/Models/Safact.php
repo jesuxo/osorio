@@ -22,7 +22,7 @@ class Safact extends Model
     }
 
     public function cliente   (){
-        return $this->belongsTo(Saclie::class, 'CodClie', 'codclie');
+        return $this->belongsTo(Saclie::class, 'CodClie', 'CodClie');
     }
 
     public function seriales     (){

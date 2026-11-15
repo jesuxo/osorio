@@ -373,8 +373,25 @@ class WebController extends Controller
         array_unshift($vistos, $codprod);
         session(['productos_vistos' => array_slice($vistos, 0, 8)]);
 
+        // Galería de cada variante para el selector de color en el front
+        $variantesData = $variantes->map(function ($v) {
+            $galeria = $v->galeria; // accessor que ya tienes en el modelo
+            return [
+                'codprod'   => $v->codprod,
+                'imagen'    => $v->imagen_url,
+                'thumb'     => $v->imagen_thumb_url,
+                'color'     => $v->color_nombre,
+                'hex'       => $v->color_hex,
+                'precio'    => (float) $v->costod3,
+                'galeria'   => $galeria->map(fn($img) => [
+                    'grande' => $img->imagen_url,
+                    'thumb'  => $img->imagen_thumb_url,
+                ])->values()->toArray(),
+            ];
+        })->keyBy('codprod')->toArray();
+
         return view('web.producto', compact(
-            'producto', 'variantes', 'nombreCatalogo', 'relacionados'
+            'producto', 'variantes', 'nombreCatalogo', 'relacionados', 'variantesData'
         ));
     }
 
@@ -393,6 +410,7 @@ class WebController extends Controller
                 'descrip'  => $producto->descrip,
                 'precio'   => $producto->costod3,
                 'cantidad' => $request->get('cantidad', 1),
+                'imagen'   => $producto->imagen_thumb_url,
             ];
         }
 

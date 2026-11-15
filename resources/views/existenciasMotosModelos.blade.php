@@ -27,9 +27,14 @@
                     @else
                          <a target="_blank" href="/existencia/motos/modelos/{{$inspadre}}"><i class="bi bi-printer" style="margin-right: 5px"></i> Imprimir</a>
                     @endif
+
+                    <button type="button" class="btn btn-sm btn-light me-2"
+                            onclick=" $('.showModalModelos').hide(); capture('#tablamodelosmotos')">
+                        <i class="bi bi-camera"></i> Capturar
+                    </button>
                 </div>
                 <div class="card-body" data-simplebar  >
-                    <table @if($ajax == 0) width="1000px"@endif border="0" class="table table-borderless table-centered align-middle table-nowrap mb-0 ">
+                    <table @if($ajax == 0) width="1000px"@endif border="0" id="tablamodelosmotos" class="table table-borderless table-centered align-middle table-nowrap mb-0 ">
                         <thead  style="position: sticky; top: 0;">
                         <tr>
                             <td width="20%" align="center" class="titulo tdlineff  "> MARCA  </td>

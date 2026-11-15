@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Helpers\ImagenProductoHelper;
+use App\Models\SaprodImagen;
 
 class SaprodController extends Controller
 {
@@ -1263,8 +1265,11 @@ class SaprodController extends Controller
 
     public function create()
     {
+        $comercial = session('comercialid', 1);
+
         $instancias = Sainsta::selectRaw("concat( repeat('&nbsp;',((nivel-1)*4)), Descrip ) as label, descrip, id, nivel, codinst, insPadre ")
             ->with(['padre'])
+            ->where('comercial', $comercial)
             ->where('tipoins','0')
             ->orderBy('codalte','asc')->get();
 
@@ -1273,7 +1278,17 @@ class SaprodController extends Controller
         if(isset($product) and $product->codprod != '')
             $last = $product->codprod;
 
-        return view('product-create', compact('instancias','last') );
+        // 🔥 NUEVO: grupos existentes para el datalist
+
+        $gruposExistentes = Saprod::where('comercial', $comercial)
+            ->whereNotNull('grupo')
+            ->where('grupo', '<>', '')
+            ->distinct()
+            ->orderBy('grupo')
+            ->pluck('grupo')
+            ->toArray();
+
+        return view('product-create', compact('instancias', 'last', 'gruposExistentes'));
     }
 
     public function checkcodprod($codprod)
@@ -1668,49 +1683,69 @@ class SaprodController extends Controller
     /**
      * Guardar cambios de una fila vía AJAX.
      */
+    // En gruposUpdate — reemplazar el validate y la lógica de campos
+
     public function gruposUpdate(Request $request)
     {
         $request->validate([
             'codprod' => 'required|string|exists:saprod,codprod',
-            'campo'   => 'required|in:descrip,refere,marca,grupo,grupo_nombre,color_hex,color_nombre,clase,cilindraje',
-            'valor'   => 'nullable|string|max:255',
+            'campo'   => 'required|in:descrip,refere,marca,grupo,grupo_nombre,color_hex,color_nombre,clase,cilindraje,costod3',
+            'valor'   => 'nullable',
         ]);
 
         $comercial = session('comercialid', 1);
-
-        $producto = Saprod::where('comercial', $comercial)
+        $producto  = Saprod::where('comercial', $comercial)
             ->where('codprod', $request->codprod)
             ->firstOrFail();
 
         $campo = $request->campo;
         $valor = $request->valor;
 
-        // Sanitizar según el tipo
+        // Sanitizar
         if ($campo === 'color_hex') {
             $valor = strtoupper(trim((string) $valor));
             if ($valor !== '' && !preg_match('/^#[0-9A-F]{6}$/', $valor)) {
-                return response()->json(['error' => 'Color hex inválido (ej: #1E40AF)'], 422);
+                return response()->json(['error' => 'Color hex inválido'], 422);
             }
             if ($valor === '') $valor = null;
         }
 
         if ($campo === 'cilindraje') {
-            $valor = $valor === '' || $valor === null ? null : (int) $valor;
+            $valor = ($valor === '' || $valor === null) ? null : (int) $valor;
+        }
+
+        if ($campo === 'costod3') {
+            if ($valor === '' || $valor === null) $valor = 0;
+            if (!is_numeric($valor) || $valor < 0) {
+                return response()->json(['error' => 'Precio inválido'], 422);
+            }
+            $valor = round((float) $valor, 2);
         }
 
         if (in_array($campo, ['grupo', 'grupo_nombre', 'refere', 'marca', 'color_nombre', 'clase'])) {
             $valor = $valor === '' ? null : trim((string) $valor);
         }
 
-        if ($campo === 'descrip') {
-            if (trim((string) $valor) === '') {
-                return response()->json(['error' => 'La descripción no puede estar vacía'], 422);
-            }
-            $valor = trim((string) $valor);
+        if ($campo === 'descrip' && trim((string) $valor) === '') {
+            return response()->json(['error' => 'La descripción no puede estar vacía'], 422);
         }
 
-        $producto->{$campo} = $valor;
-        $producto->save();
+        // Si cambia el precio, propagar a TODOS los productos con ese codprod
+        if ($campo === 'costod3') {
+            Saprod::where('codprod', $producto->codprod)->update([
+                'costod3'    => $valor,
+                'updated_at' => now(),
+            ]);
+            $producto->refresh();
+        } else {
+            $producto->{$campo} = $valor;
+            $producto->save();
+        }
+
+        // Invalidar sincronización local si el campo es "sensible"
+        if (in_array($campo, ['costod3', 'descrip', 'marca', 'refere'])) {
+            $this->invalidarProductoEnSucursales($producto->codprod);
+        }
 
         return response()->json([
             'success' => true,
@@ -1718,5 +1753,224 @@ class SaprodController extends Controller
             'valor'   => $producto->{$campo},
             'message' => 'Guardado',
         ]);
+    }
+
+    /**
+     * Sube (o reemplaza) la imagen de un producto.
+     * Acepta: POST /saprod/{id}/imagen  con archivo "imagen"
+     */
+    public function subirImagen(Request $request, $id)
+    {
+        $request->validate([
+            'imagen' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120', // 5MB
+        ]);
+
+        $producto = Saprod::findOrFail($id);
+        $comercial = session('comercialid', 1);
+
+        $data = ImagenProductoHelper::procesar($request->file('imagen'), $producto->codprod);
+        if (!$data) {
+            return response()->json(['error' => 'No se pudo procesar la imagen'], 500);
+        }
+
+        // Borrar imagen anterior (si existe)
+        ImagenProductoHelper::borrar($producto->imagen, $producto->imagen_thumb);
+
+        $producto->imagen          = $data['imagen'];
+        $producto->imagen_thumb    = $data['thumb'];
+        $producto->imagen_original = $data['original'];
+        $producto->imagen_ancho    = $data['ancho'];
+        $producto->imagen_alto     = $data['alto'];
+        $producto->save();
+
+        // Propagar a TODOS los productos del mismo codprod (otras comerciales / colores del grupo)
+        Saprod::where('codprod', $producto->codprod)
+            ->where('id', '!=', $producto->id)
+            ->update([
+                'imagen'          => $data['imagen'],
+                'imagen_thumb'    => $data['thumb'],
+                'imagen_original' => $data['original'],
+                'imagen_ancho'    => $data['ancho'],
+                'imagen_alto'     => $data['alto'],
+                'updated_at'      => now(),
+            ]);
+
+        // Invalidar cache de sincronización (mismo patrón que al editar precio)
+        $this->invalidarProductoEnSucursales($producto->codprod);
+
+        return response()->json([
+            'success' => true,
+            'imagen'  => $producto->imagen_url,
+            'thumb'   => $producto->imagen_thumb_url,
+        ]);
+    }
+
+    /**
+     * Elimina la imagen del producto (física + campos).
+     * DELETE /saprod/{id}/imagen
+     */
+    public function eliminarImagen($id)
+    {
+        $producto = Saprod::findOrFail($id);
+
+        ImagenProductoHelper::borrar($producto->imagen, $producto->imagen_thumb);
+
+        Saprod::where('codprod', $producto->codprod)->update([
+            'imagen'          => null,
+            'imagen_thumb'    => null,
+            'imagen_original' => null,
+            'imagen_ancho'    => null,
+            'imagen_alto'     => null,
+            'updated_at'      => now(),
+        ]);
+
+        $this->invalidarProductoEnSucursales($producto->codprod);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Marca un producto como "pendiente de sincronizar" en todas las sucursales,
+     * para que las cajas locales lo refresquen en su próxima sincronización.
+     * Se aplica al editar precio, imagen o datos clave.
+     */
+    protected function invalidarProductoEnSucursales(string $codprod): void
+    {
+        Saprodsucursal::where('codprod', $codprod)->delete();
+    }
+
+    /**
+     * POST /saprod/{id}/imagenes   (multipart: imagenes[])
+     * Sube 1 o N imágenes adicionales.
+     */
+    public function subirImagenes(Request $request, $id)
+    {
+        $request->validate([
+            'imagenes'   => 'required|array|min:1',
+            'imagenes.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120',
+        ]);
+
+        $producto = Saprod::findOrFail($id);
+
+        $siguienteOrden = (int) SaprodImagen::where('fk_saprod', $producto->id)
+            ->max('orden');
+        $siguienteOrden++;
+
+        $creadas = [];
+
+        foreach ($request->file('imagenes') as $archivo) {
+            $data = ImagenProductoHelper::procesar($archivo, $producto->codprod);
+            if (!$data) continue;
+
+            $img = SaprodImagen::create([
+                'fk_saprod'       => $producto->id,
+                'codprod'         => $producto->codprod,
+                'imagen'          => $data['imagen'],
+                'imagen_thumb'    => $data['thumb'],
+                'imagen_original' => $data['original'],
+                'ancho'           => $data['ancho'],
+                'alto'            => $data['alto'],
+                'orden'           => $siguienteOrden++,
+                'principal'       => false,
+            ]);
+
+            $creadas[] = [
+                'id'               => $img->id,
+                'imagen_url'       => $img->imagen_url,
+                'imagen_thumb_url' => $img->imagen_thumb_url,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'imagenes' => $creadas,
+        ]);
+    }
+
+    /**
+     * DELETE /saprod/imagenes/{imagenId}
+     */
+    public function eliminarImagenGaleria($imagenId)
+    {
+        $img = SaprodImagen::findOrFail($imagenId);
+        $producto = $img->producto;
+
+        ImagenProductoHelper::borrar($img->imagen, $img->imagen_thumb);
+
+        // Si era la principal, promover la siguiente
+        $eraPrincipal = $img->principal;
+        $img->delete();
+
+        if ($eraPrincipal && $producto) {
+            $siguiente = SaprodImagen::where('fk_saprod', $producto->id)
+                ->orderBy('orden')->first();
+            if ($siguiente) {
+                $siguiente->principal = true;
+                $siguiente->save();
+                $this->sincronizarPortada($producto);
+            }
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * PUT /saprod/imagenes/{imagenId}/principal
+     * Marca esta imagen como portada del producto.
+     */
+    public function marcarPrincipal($imagenId)
+    {
+        $img = SaprodImagen::findOrFail($imagenId);
+        $producto = $img->producto;
+
+        SaprodImagen::where('fk_saprod', $producto->id)->update(['principal' => false]);
+        $img->principal = true;
+        $img->save();
+
+        $this->sincronizarPortada($producto);
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * PUT /saprod/imagenes/reordenar   (body: { orden: [id1, id2, ...] })
+     */
+    public function reordenarImagenes(Request $request)
+    {
+        $request->validate([
+            'orden'   => 'required|array',
+            'orden.*' => 'integer|exists:saprod_imagenes,id',
+        ]);
+
+        foreach ($request->orden as $pos => $id) {
+            SaprodImagen::where('id', $id)->update(['orden' => $pos]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Copia los datos de la imagen principal a saprod.imagen / imagen_thumb
+     * para que cards, carrito y OG sigan funcionando sin tocar la galería.
+     */
+    protected function sincronizarPortada(Saprod $producto): void
+    {
+        $portada = SaprodImagen::where('fk_saprod', $producto->id)
+            ->where('principal', true)
+            ->first()
+            ?: SaprodImagen::where('fk_saprod', $producto->id)->orderBy('orden')->first();
+
+        if (!$portada) return;
+
+        Saprod::where('codprod', $producto->codprod)->update([
+            'imagen'          => $portada->imagen,
+            'imagen_thumb'    => $portada->imagen_thumb,
+            'imagen_original' => $portada->imagen_original,
+            'imagen_ancho'    => $portada->ancho,
+            'imagen_alto'     => $portada->alto,
+            'updated_at'      => now(),
+        ]);
+
+        $this->invalidarProductoEnSucursales($producto->codprod);
     }
 }

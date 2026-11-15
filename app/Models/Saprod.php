@@ -15,7 +15,8 @@ class Saprod extends Model
         'esexento','exdecimal','preciodolarfijo', 'cantxempaq','volumen','peso','unidad',
         'preciod','preciod2','costod','costod2','costod3',
         'grupo', 'grupo_nombre', 'grupo_destacado',
-        'color_hex', 'color_nombre'
+        'color_hex', 'color_nombre',
+        'imagen','imagen_thumb','imagen_original','imagen_ancho','imagen_alto',
     ];
 
     public function instancia(){
@@ -71,18 +72,6 @@ class Saprod extends Model
         return $this->costod3 ?? $this->preciod ?? 0;
     }
 
-    /**
-     * Accessor para obtener la URL de la imagen (placeholder por ahora)
-     */
-    public function getImagenUrlAttribute()
-    {
-        // Si tienes un campo para imagen en la BD, úsalo
-        if (isset($this->imagen) && $this->imagen) {
-            return asset('uploads/productos/' . $this->imagen);
-        }
-        // Placeholder por defecto
-        return asset('build/images/noimagen.jpg');
-    }
 
     /**
      * Scope para productos activos
@@ -109,24 +98,86 @@ class Saprod extends Model
         });
     }
 
-    public function variantesDelGrupo()
+    public function variantesDelGrupo(int $comercial = null)
     {
         if (empty($this->grupo)) {
             return collect([$this]);
         }
-
-        return Saprod::where('comercial', $this->comercial)
+        return Saprod::where('comercial', $comercial ?? $this->comercial)
             ->where('activo', 1)
             ->where('grupo', $this->grupo)
             ->orderBy('id')
             ->get();
     }
 
+    // app/Models/Saprod.php
+
+    public function imagenes()
+    {
+        return $this->hasMany(SaprodImagen::class, 'fk_saprod')
+            ->orderBy('principal', 'desc')
+            ->orderBy('orden')
+            ->orderBy('id');
+    }
+
+    public function getImagenThumbGrupoUrlAttribute(): string
+    {
+        if ($this->imagen_thumb) {
+            return asset($this->imagen_thumb) . '?v=' . ($this->updated_at?->timestamp ?? 0);
+        }
+        if ($this->imagen) {
+            return asset($this->imagen) . '?v=' . ($this->updated_at?->timestamp ?? 0);
+        }
+        if ($this->grupo) {
+            $alt = static::where('comercial', $this->comercial)
+                ->where('grupo', $this->grupo)
+                ->whereNotNull('imagen_thumb')
+                ->orderBy('id')
+                ->value('imagen_thumb');
+            if ($alt) return asset($alt);
+        }
+        return asset('build/images/noimagen.jpg');
+    }
+
     /**
-     * Scope: productos "representantes" del catálogo.
-     * Si un producto tiene grupo, solo el de menor `id` del grupo aparece.
-     * Los que no tienen grupo, aparecen siempre.
+     * Galería completa: portada + adicionales.
+     * Si no hay adicionales, devuelve al menos la principal (si existe).
      */
+    public function getGaleriaAttribute()
+    {
+        $imgs = $this->imagenes;
+        if ($imgs->isEmpty() && $this->tieneImagen()) {
+            return collect([(object) [
+                'imagen_url'       => $this->imagen_url,
+                'imagen_thumb_url' => $this->imagen_thumb_url,
+            ]]);
+        }
+        return $imgs;
+    }
+
+    public function getImagenUrlAttribute(): string
+    {
+        if ($this->imagen && file_exists(public_path($this->imagen))) {
+            return asset($this->imagen) . '?v=' . ($this->updated_at?->timestamp ?? 0);
+        }
+        return asset('build/images/noimagen.jpg');
+    }
+
+    public function getImagenThumbUrlAttribute(): string
+    {
+        if ($this->imagen_thumb && file_exists(public_path($this->imagen_thumb))) {
+            return asset($this->imagen_thumb) . '?v=' . ($this->updated_at?->timestamp ?? 0);
+        }
+        if ($this->imagen && file_exists(public_path($this->imagen))) {
+            return asset($this->imagen);
+        }
+        return asset('build/images/noimagen.jpg');
+    }
+
+    public function tieneImagen(): bool
+    {
+        return !empty($this->imagen) && file_exists(public_path($this->imagen));
+    }
     public function scopeCatalogo($query)
     {
         return $query->where(function ($q) {

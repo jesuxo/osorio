@@ -363,6 +363,11 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['auth'])->prefix('saprod')->name('saprod.')->group(function () {
         Route::get('/grupos', [SaprodController::class, 'grupos'])->name('grupos');
         Route::post('/grupos/update', [SaprodController::class, 'gruposUpdate'])->name('grupos.update');
+
+        Route::post  ('{id}/imagenes',                    [SaprodController::class, 'subirImagenes'])      ->name('imagenes.subir');
+        Route::delete('imagenes/{imagenId}',              [SaprodController::class, 'eliminarImagenGaleria'])->name('imagenes.eliminar');
+        Route::put   ('imagenes/{imagenId}/principal',    [SaprodController::class, 'marcarPrincipal'])     ->name('imagenes.principal');
+        Route::put   ('imagenes/reordenar',               [SaprodController::class, 'reordenarImagenes'])   ->name('imagenes.reordenar');
     });
 
     Route::get('/buscarproducto/{codprod}/{comercial}', [SaprodController::class, 'buscarproductoget'])->name('buscarproductoget');
@@ -397,6 +402,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('sainsta/json', 'json');
         Route::post('/sainsta/check/lastprod', 'lastprod');
     });
+
+    Route::post('saprod/{id}/imagen',   [SaprodController::class, 'subirImagen'])   ->name('saprod.imagen.subir');
+    Route::delete('saprod/{id}/imagen', [SaprodController::class, 'eliminarImagen'])->name('saprod.imagen.eliminar');
 
     Route::get('/productos/plantilla', [SaprodController::class, 'descargarPlantilla'])->name('productos.plantilla');
     Route::post('/productos/importarcrear', [SaprodController::class, 'importarcrear'])->name('productos.importarcrear');

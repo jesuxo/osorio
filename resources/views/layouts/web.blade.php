@@ -411,6 +411,28 @@
             color: #122658;
         }
     </style>
+
+    {{-- Open Graph (WhatsApp / Facebook / Telegram) --}}
+    @php
+        $ogTitle       = $ogTitle       ?? ($nombreCatalogo ?? $producto->descrip ?? 'Osorio Group');
+        $ogDescription = $ogDescription ?? ($producto->descrip2 ?? 'Concesionario, distribuidor e importador de motos y repuestos en Táchira.');
+        $ogImage       = $ogImage       ?? ($producto->imagen_thumb_url ?? asset('build/images/logolateral.png'));
+        $ogUrl         = url()->current();
+    @endphp
+
+    <meta property="og:type"        content="product">
+    <meta property="og:site_name"   content="Osorio Group">
+    <meta property="og:title"       content="{{ $ogTitle }}">
+    <meta property="og:description" content="{{ $ogDescription }}">
+    <meta property="og:image"       content="{{ $ogImage }}">
+    <meta property="og:image:width"  content="600">
+    <meta property="og:image:height" content="600">
+    <meta property="og:url"         content="{{ $ogUrl }}">
+    <meta name="twitter:card"        content="summary_large_image">
+    <meta name="twitter:title"       content="{{ $ogTitle }}">
+    <meta name="twitter:description" content="{{ $ogDescription }}">
+    <meta name="twitter:image"       content="{{ $ogImage }}">
+
     @yield('css')
 </head>
 <body>

@@ -383,11 +383,11 @@
                     @foreach($motosDestacadas as $moto)
                         @php $precio = (float) ($moto->costod3 ?? 0); @endphp
                         <div class="col-lg-3 col-md-4 col-6">
-                            <div class="card-producto h-100 d-flex flex-column"> <!--{ { route('web.producto', $moto->codprod) }}-->
-                                <a href="#"
+                            <div class="card-producto h-100 d-flex flex-column">
+                                <a href="{{ route('web.producto', $moto->codprod) }}"
                                    class="text-decoration-none d-block"
                                    aria-label="Ver {{ $moto->descrip }}">
-                                    <img src="{{ asset('build/images/noimagen.jpg') }}"
+                                    <img src="{{ $moto->imagen_thumb_grupo_url }}"
                                          alt="{{ $moto->descrip }}"
                                          loading="lazy">
                                 </a>
@@ -397,7 +397,7 @@
                                         {{ $moto->marca ?? 'Moto' }}
                                     </small>
                                     <h6 class="fw-bold mt-1 mb-2" style="font-size: .95rem; line-height: 1.3;"><!-- { { route('web.producto', $moto->codprod) }}-->
-                                        <a href="#"
+                                        <a href="{{ route('web.producto', $moto->codprod) }}"
                                            class="text-decoration-none"
                                            style="color: var(--cf-dark);">
                                             {{ $moto->descrip }}
@@ -412,8 +412,8 @@
                                             <span class="text-secondary" style="font-size: .78rem;">
                                         Precio por confirmar
                                     </span>
-                                        @endif <!--{ { route('web.producto', $moto->codprod) }}-->
-                                        <a href="#"
+                                        @endif
+                                        <a href="{{ route('web.producto', $moto->codprod) }}"
                                            class="btn btn-cf btn-sm px-3">
                                             Ver
                                         </a>

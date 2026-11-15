@@ -4,7 +4,7 @@
 
 @section('content')
     <style>
-        .filtro-titulo, .filtro-opcion{
+        .filtro-titulo, .filtro-opcion {
             color: #fff;
         }
         /* ============================================================ */
@@ -36,6 +36,7 @@
             opacity: 1;
         }
     </style>
+
     {{-- ============================================================ --}}
     {{-- HEADER DINÁMICO --}}
     {{-- ============================================================ --}}
@@ -106,7 +107,7 @@
                         </div>
                     </div>
 
-                    {{-- 🔥 NUEVO: chips de filtros activos --}}
+                    {{-- Chips de filtros activos --}}
                     @include('web.partials.filtros-activos', [
                         'marcaActiva' => $marcaActiva,
                         'marcaCodalte'=> $marcaCodalte,
@@ -319,17 +320,29 @@
             .filtro-opcion { font-size: .8rem; }
             .chip-estilo-filtro { font-size: .72rem; padding: .25rem .6rem; }
         }
-        .breadcrumb a,.breadcrumb a:visited, .page-link{
-            color:#122658 !important;
+        .breadcrumb a,
+        .breadcrumb a:visited,
+        .page-link {
+            color: #122658 !important;
         }
-        .active > .page-link, .page-link.active{
+        .active > .page-link,
+        .page-link.active {
             z-index: 3;
             color: var(--bs-pagination-active-color) !important;
             background-color: #122658;
             border-color: #122658;
         }
 
-
+        .color-dot {
+            outline: none;
+        }
+        .color-dot:hover {
+            transform: scale(1.2);
+        }
+        .color-dot.active {
+            box-shadow: 0 0 0 2px var(--cf-teal) !important;
+            transform: scale(1.15);
+        }
     </style>
 @endsection
 
@@ -417,12 +430,11 @@
                             });
                         }
 
-                        // 🔥 Chips de filtros activos
+                        // Chips de filtros activos
                         const contenedorFiltros = document.getElementById('filtros-activos');
                         const existeNuevo = data.filtrosActivos && data.filtrosActivos.trim() !== '';
 
                         if (existeNuevo) {
-                            // Si ya existe el contenedor, lo reemplaza; si no, lo inserta antes del grid-wrapper
                             if (contenedorFiltros) {
                                 const wrapper = document.createElement('div');
                                 wrapper.innerHTML = data.filtrosActivos.trim();
@@ -436,7 +448,6 @@
                                 if (nuevo && gridWrapper) gridWrapper.parentNode.insertBefore(nuevo, gridWrapper);
                             }
                         } else if (contenedorFiltros) {
-                            // Si ya no hay filtros activos, quitar el bloque entero
                             contenedorFiltros.remove();
                         }
 
@@ -508,6 +519,62 @@
                 e.preventDefault();
                 const esFiltro = link.classList.contains('filtro-link');
                 cargarMotos(link.href, { chip: esFiltro ? link : null });
+            });
+
+            /* ============================================================ */
+            /* CAMBIO DE IMAGEN AL CLICK EN UN COLOR DE LA CARD             */
+            /* ============================================================ */
+            document.addEventListener('click', function (e) {
+                const dot = e.target.closest('.color-dot');
+                if (!dot) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                const contenedor = dot.closest('.card-colores');
+                const card       = dot.closest('.card-producto');
+                if (!card || !contenedor) return;
+
+                // Marcar activo
+                contenedor.querySelectorAll('.color-dot').forEach(b => b.classList.remove('active'));
+                dot.classList.add('active');
+
+                const codprod = dot.dataset.codprod;
+                const imagen  = dot.dataset.imagen;
+                const precio  = parseFloat(dot.dataset.precio || 0);
+
+                // Cambiar imagen de la card
+                const img = card.querySelector('.js-card-img');
+                if (img && imagen) {
+                    img.src = imagen;
+                }
+
+                // 🔥 Cambiar precio
+                const precioWrap = card.querySelector('.js-card-precio');
+                if (precioWrap) {
+                    if (precio > 0) {
+                        precioWrap.innerHTML = `
+                <small class="text-secondary d-block" style="font-size: .65rem;">Precio ref.</small>
+                <span class="fw-bold" style="color: var(--cf-teal); font-size: 1.1rem;">
+                    $${precio.toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </span>
+            `;
+                    } else {
+                        precioWrap.innerHTML = `
+                <span class="text-secondary fst-italic" style="font-size: .78rem;">
+                    Precio por confirmar
+                </span>
+            `;
+                    }
+                }
+
+                // Actualizar todos los links "Ver ficha" y el de la imagen
+                card.querySelectorAll('a.js-card-link').forEach(a => {
+                    a.href = a.href.replace(/\/producto\/[^/]+$/, '/producto/' + codprod);
+                });
+
+                // Actualizar el codprod activo del grupo
+                contenedor.dataset.codprodActual = codprod;
             });
 
             // Click en "Aplicar precio" (delegado — sobrevive al reemplazo del sidebar)

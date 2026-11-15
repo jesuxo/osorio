@@ -7,35 +7,34 @@
         <div class="row g-4">
             @foreach($motos as $moto)
                 @php
-                    $precio = (float) ($moto->costod3 ?? 0);
+                    $precio         = (float) ($moto->costod3 ?? 0);
+                    $variantes      = $moto->variantes ?? collect([$moto]);
+                    $tieneMultiples = $variantes->count() > 1;
+                    $nombreCatalogo = $moto->grupo_nombre ?: $moto->descrip;
+                    $imagenCard     = $moto->imagen_thumb_grupo_url;
                 @endphp
+
                 <div class="col-6 col-md-4">
-
-
-
                     <div class="card-producto h-100 d-flex flex-column">
 
                         <a href="{{ route('web.producto', $moto->codprod) }}"
-                           class="text-decoration-none d-block mt-2"
+                           class="text-decoration-none d-block mt-2 js-card-link"
                            aria-label="Ver {{ $moto->descrip }}">
-                            <img src="{{ asset('build/images/noimagen.jpg') }}"
-                                 alt="{{ $moto->descrip }}"
-                                 loading="lazy">
+                            <img src="{{ $imagenCard }}"
+                                 alt="{{ $nombreCatalogo }}"
+                                 loading="lazy"
+                                 width="400" height="300"
+                                 class="js-card-img"
+                                 style="aspect-ratio: 4/3; object-fit: cover; width: 100%;">
                         </a>
 
                         <div class="p-3 d-flex flex-column flex-grow-1">
 
-                            @php
-                                $variantes = $moto->variantes ?? collect([$moto]);
-                                $tieneMultiples = $variantes->count() > 1;
-                                $nombreCatalogo = $moto->grupo_nombre ?: $moto->descrip;
-                            @endphp
-
                             @if($moto->cilindraje)
                                 <span class="badge bg-dark-subtle text-dark align-self-start mb-2"
                                       style="font-size: .68rem; letter-spacing: .5px;">
-            {{ $moto->cilindraje }} CC
-        </span>
+                                    {{ $moto->cilindraje }} CC
+                                </span>
                             @endif
 
                             <small class="text-secondary text-uppercase"
@@ -55,49 +54,59 @@
 
                             {{-- 🎨 Colores disponibles --}}
                             @if($tieneMultiples)
-                                <div class="d-flex align-items-center gap-2 mb-3">
-                                    @foreach($variantes->take(4) as $v)
-                                        <span style="display: inline-block; width: 16px; height: 16px; border-radius: 50%;
-                             background: {{ $v->color_hex ?? '#ccc' }};
-                             border: 2px solid #fff;
-                             box-shadow: 0 0 0 1px #ddd;"
-                                              title="{{ $v->color_nombre ?? '' }}"></span>
-                                    @endforeach
-                                    @if($variantes->count() > 4)
-                                        <small class="text-secondary">+{{ $variantes->count() - 4 }}</small>
-                                    @endif
-                                    <small class="text-secondary ms-auto">
-                                        {{ $variantes->count() }} colores
-                                    </small>
-                                </div>
+                                    <div class="d-flex align-items-center gap-2 mb-3 card-colores"
+                                         data-codprod-actual="{{ $moto->codprod }}">
+                                        @foreach($variantes->take(4) as $v)
+                                            <button type="button"
+                                                    class="color-dot {{ $v->codprod === $moto->codprod ? 'active' : '' }}"
+                                                    data-codprod="{{ $v->codprod }}"
+                                                    data-imagen="{{ $v->imagen_thumb_grupo_url ?? $v->imagen_thumb_url }}"
+                                                    data-precio="{{ $v->costod3 }}"
+                                                    data-color="{{ $v->color_nombre ?? '' }}"
+                                                    style="width: 18px; height: 18px; border-radius: 50%;
+                                                   background: {{ $v->color_hex ?? '#ccc' }};
+                                                   border: 2px solid #fff;
+                                                   box-shadow: 0 0 0 1px #ddd;
+                                                   padding: 0; cursor: pointer;
+                                                   transition: transform .15s ease;"
+                                                    title="{{ $v->color_nombre ?? '' }}">
+                                            </button>
+                                        @endforeach
+                                        @if($variantes->count() > 4)
+                                            <small class="text-secondary">+{{ $variantes->count() - 4 }}</small>
+                                        @endif
+                                        <small class="text-secondary ms-auto">
+                                            {{ $variantes->count() }} colores
+                                        </small>
+                                    </div>
                             @elseif($moto->color_hex)
                                 <div class="d-flex align-items-center gap-2 mb-3">
-            <span style="display: inline-block; width: 16px; height: 16px; border-radius: 50%;
-                         background: {{ $moto->color_hex }};
-                         border: 2px solid #fff;
-                         box-shadow: 0 0 0 1px #ddd;"></span>
+                                    <span style="display: inline-block; width: 16px; height: 16px; border-radius: 50%;
+                                                 background: {{ $moto->color_hex }};
+                                                 border: 2px solid #fff;
+                                                 box-shadow: 0 0 0 1px #ddd;"></span>
                                     <small class="text-secondary">{{ $moto->color_nombre ?? '' }}</small>
                                 </div>
                             @endif
 
-                            <div class="mt-auto d-flex justify-content-between align-items-end gap-2">
-                                <div>
-                                    @if($precio > 0)
-                                        <small class="text-secondary d-block" style="font-size: .65rem;">Precio ref.</small>
-                                        <span class="fw-bold" style="color: var(--cf-teal); font-size: 1.1rem;">
-                    ${{ number_format($precio, 0, ',', '.') }}
-                </span>
-                                    @else
-                                        <span class="text-secondary fst-italic" style="font-size: .78rem;">
-                    Precio por confirmar
-                </span>
-                                    @endif
+                                <div class="mt-auto d-flex justify-content-between align-items-end gap-2">
+                                    <div class="js-card-precio">
+                                        @if($precio > 0)
+                                            <small class="text-secondary d-block" style="font-size: .65rem;">Precio ref.</small>
+                                            <span class="fw-bold" style="color: var(--cf-teal); font-size: 1.1rem;">
+                                                ${{ number_format($precio, 0, ',', '.') }}
+                                            </span>
+                                        @else
+                                            <span class="text-secondary fst-italic" style="font-size: .78rem;">
+                                                Precio por confirmar
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <a href="{{ route('web.producto', $moto->codprod) }}"
+                                       class="btn btn-cf btn-sm px-3 js-card-link">
+                                        Ver ficha <i class="bi bi-arrow-right ms-1"></i>
+                                    </a>
                                 </div>
-                                <a href="{{ route('web.producto', $moto->codprod) }}"
-                                   class="btn btn-cf btn-sm px-3">
-                                    Ver ficha <i class="bi bi-arrow-right ms-1"></i>
-                                </a>
-                            </div>
                         </div>
                     </div>
                 </div>

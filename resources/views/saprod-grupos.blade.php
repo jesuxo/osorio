@@ -29,7 +29,7 @@
         .tabla-grupos .form-select {
             font-size: .82rem;
             padding: .25rem .5rem;
-            border: 1px solid transparent;
+            border: 1px solid #d1d3d6;
             background: transparent;
             transition: all .15s ease;
         }
@@ -98,6 +98,27 @@
             border-radius: 4px;
             font-family: monospace;
         }
+        .grupo-imagen-wrap:hover .grupo-imagen-btn {
+            opacity: 1;
+        }
+        .grupo-imagen-wrap:hover .grupo-imagen-preview {
+            filter: brightness(0.7);
+        }
+        .tabla-grupos .btn-link {
+            text-decoration: none;
+            line-height: 1;
+            font-size: 1rem;
+            transition: transform .15s ease;
+        }
+        .tabla-grupos .btn-link:hover {
+            transform: scale(1.15);
+        }
+        .tabla-grupos .btn-link.text-primary:hover {
+            color: #0d6efd !important;
+        }
+        .tabla-grupos .btn-link.text-success:hover {
+            color: #198754 !important;
+        }
     </style>
 @endsection
 
@@ -107,20 +128,7 @@
         <div class="col-12">
             <div class="card">
 
-                {{-- Header --}}
-                <div class="card-header bg-primary text-white">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div>
-                            <h5 class="card-title mb-0 text-white">
-                                <i class="bi bi-palette me-1"></i>
-                                Agrupación de motos por color
-                            </h5>
-                            <small class="text-white-50">
-                                {{ $productos->total() }} motos · Los cambios se guardan automáticamente
-                            </small>
-                        </div>
-                    </div>
-                </div>
+
 
                 {{-- Filtros --}}
                 <div class="card-body border-bottom bg-light">
@@ -167,8 +175,7 @@
                         <table class="table table-hover mb-0 tabla-grupos" id="tablaGrupos">
                             <thead>
                             <tr>
-                                <th style="min-width:300px;">Descripción</th>
-                                <th style="width: 120px;">Referencia</th>
+                                <th style="min-width:220px;">Descripción</th>
                                 <th style="width: 120px;">Marca</th>
                                 <th style="width: 130px;">Grupo</th>
                                 <th style="min-width: 160px;">Nombre catálogo</th>
@@ -176,7 +183,9 @@
                                 <th style="width: 140px;">Nombre color</th>
                                 <th style="width: 140px;">Estilo</th>
                                 <th style="width: 90px;">CC</th>
-                                <th style="width: 40px;"></th>
+                                <th style="width: 80px;">Imagen</th>
+                                <th style="width: 110px;">Precio (USD)</th>
+                                <th style="width: 90px;">Acciones</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -201,23 +210,15 @@
                                     <td>
                                         <input type="text"
                                                class="form-control"
-                                               data-campo="descrip"
+                                               data-campo="descrip" style="min-width: 220px"
                                                value="{{ $p->descrip }}">
-                                    </td>
-
-                                    {{-- Referencia --}}
-                                    <td>
-                                        <input type="text"
-                                               class="form-control"
-                                               data-campo="refere"
-                                               value="{{ $p->refere }}">
                                     </td>
 
                                     {{-- Marca --}}
                                     <td>
                                         <input type="text"
                                                class="form-control"
-                                               data-campo="marca"
+                                               data-campo="marca" style="min-width: 80px"
                                                value="{{ $p->marca }}"
                                                list="marcas-sugeridas">
                                     </td>
@@ -227,7 +228,7 @@
                                         <input type="text"
                                                class="form-control"
                                                data-campo="grupo"
-                                               value="{{ $p->grupo }}"
+                                               value="{{ $p->grupo }}" style="min-width: 70px"
                                                list="grupos-sugeridos"
                                                placeholder="ej: cf450mt">
                                     </td>
@@ -274,26 +275,79 @@
                                                class="form-control"
                                                data-campo="clase"
                                                value="{{ $p->clase }}"
-                                               list="clases-sugeridas">
+                                               list="clases-sugeridas" style="min-width: 122px; ">
                                     </td>
 
                                     {{-- Cilindraje --}}
                                     <td>
                                         <input type="number"
-                                               class="form-control"
+                                               class="form-control"  style="min-width: 45px;"
                                                data-campo="cilindraje"
                                                value="{{ $p->cilindraje }}"
                                                min="0" step="1">
                                     </td>
+                                    {{-- Imagen --}}
+                                    <td class="text-center">
+                                        <div class="grupo-imagen-wrap position-relative"
+                                             style="width: 56px; height: 56px; border-radius: 6px; overflow: hidden;
+                border: 1px solid #dee2e6; background: #f8f9fa;
+                display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+                                            <img src="{{ $p->imagen_thumb_url }}"
+                                                 alt="{{ $p->descrip }}"
+                                                 style="width: 100%; height: 100%; object-fit: cover;"
+                                                 class="grupo-imagen-preview"
+                                                 data-id="{{ $p->id }}">
+                                            <input type="file"
+                                                   class="grupo-imagen-input d-none"
+                                                   accept="image/jpeg,image/png,image/webp"
+                                                   data-id="{{ $p->id }}">
+                                            <button type="button"
+                                                    class="grupo-imagen-btn position-absolute"
+                                                    style="inset: 0; background: rgba(0,0,0,.35); color: #fff; border: 0;
+                       opacity: 0; transition: opacity .15s;"
+                                                    title="Cambiar imagen">
+                                                <i class="bi bi-camera"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+
+                                    {{-- Precio --}}
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number"
+                                                   class="form-control"
+                                                   data-campo="costod3"
+                                                   value="{{ $p->costod3 }}"
+                                                   min="0" step="0.01">
+                                        </div>
+                                    </td>
 
                                     {{-- Estado de guardado --}}
+                                    {{-- Estado de guardado + Acciones --}}
                                     <td class="text-center">
-                                        <span class="estado-guardado"></span>
+                                        <div class="d-flex align-items-center justify-content-center gap-1">
+                                            <span class="estado-guardado"></span>
+
+                                            <a href="{{ route('productos.edit', $p->id) }}"
+                                               class="btn btn-sm btn-link p-0 text-primary"
+                                               title="Editar producto"
+                                               target="_blank" rel="noopener">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+
+                                            <a href="{{ route('web.producto', $p->codprod) }}"
+                                               class="btn btn-sm btn-link p-0 text-success"
+                                               title="Ver en la web"
+                                               target="_blank" rel="noopener">
+                                                <i class="bi bi-box-arrow-up-right"></i>
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="11" class="text-center py-4 text-muted">
+                                    <td colspan="13" class="text-center py-4 text-muted">
                                         No se encontraron motos con esos filtros.
                                     </td>
                                 </tr>
@@ -425,6 +479,57 @@
                     if (picker && /^#[0-9A-Fa-f]{6}$/.test(this.value)) {
                         picker.value = this.value;
                     }
+                });
+            });
+
+
+// Hover para mostrar botón
+            document.querySelectorAll('.grupo-imagen-wrap').forEach(wrap => {
+                wrap.addEventListener('mouseenter', () => wrap.querySelector('.grupo-imagen-btn').style.opacity = 1);
+                wrap.addEventListener('mouseleave', () => wrap.querySelector('.grupo-imagen-btn').style.opacity = 0);
+            });
+
+// Click en botón de imagen → abre input file
+            document.querySelectorAll('.grupo-imagen-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    this.closest('.grupo-imagen-wrap').querySelector('.grupo-imagen-input').click();
+                });
+            });
+
+// Cambio de archivo → sube vía AJAX
+            document.querySelectorAll('.grupo-imagen-input').forEach(input => {
+                input.addEventListener('change', function () {
+                    if (!this.files[0]) return;
+
+                    const id      = this.dataset.id;
+                    const preview = this.closest('.grupo-imagen-wrap').querySelector('.grupo-imagen-preview');
+                    const fd      = new FormData();
+                    fd.append('imagen', this.files[0]);
+                    fd.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+
+                    preview.style.opacity = .4;
+
+                    fetch(`/saprod/${id}/imagen`, {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
+                        body: fd,
+                    })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Cache-busting para ver el cambio al instante
+                                preview.src = data.thumb + '&t=' + Date.now();
+                                preview.style.opacity = 1;
+                            } else {
+                                alert(data.error || 'Error al subir imagen');
+                                preview.style.opacity = 1;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            alert('Error al subir imagen');
+                            preview.style.opacity = 1;
+                        });
                 });
             });
         })();

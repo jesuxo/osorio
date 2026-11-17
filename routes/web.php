@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\TonerController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\CwcuentasController;
@@ -10,7 +9,6 @@ use App\Http\Controllers\SaacxcwController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\SafactController;
 use App\Http\Controllers\SasucursalController;
-use App\Http\Controllers\ComprasController;
 use App\Http\Controllers\SerialesExtractorController;
 use App\Http\Controllers\SaprodController;
 use App\Http\Controllers\ChatConversationController;
@@ -28,6 +26,7 @@ use App\Http\Controllers\ViajeController;
 use App\Http\Controllers\SainstaController;
 use App\Http\Controllers\SaclieController;
 use App\Http\Controllers\SatarjController;
+use App\Http\Controllers\SerialesPdfController;
 use App\Http\Controllers\EtapaController;
 use App\Http\Controllers\SacompController;
 use App\Http\Controllers\GastoController;
@@ -108,8 +107,6 @@ Route::group(['prefix' => 'error'], function(){
     Route::get('500', function () { return view('error.500'); });
 });
 
-
-
 use App\Http\Controllers\ComercialDashboardController;
 
 // Rutas para el dashboard del comercial
@@ -140,9 +137,10 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth'])->group(function () {
 
-
-    Route::get('/comprasseriales', [ComprasController::class, 'index'])->name('compras.seriales');
-    Route::post('/comprasextraer-seriales', [ComprasController::class, 'extraerSeriales'])->name('compras.extraer-seriales');
+    Route::get('/seriales-pdf', [SerialesPdfController::class, 'index'])
+        ->name('seriales.extraer.form');
+    Route::post('/seriales-pdf', [SerialesPdfController::class, 'extraer'])
+        ->name('seriales.extraer');
 
     Route::get('extractor-seriales', [SerialesExtractorController::class, 'index'])->name('seriales.index');
     Route::post('extractor-seriales', [SerialesExtractorController::class, 'extract'])->name('seriales.extract');

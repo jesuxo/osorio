@@ -395,7 +395,7 @@
                     <a href="/seriales/historial" class="quick-action-btn">
                         <i class="ri-motorbike-fill"></i>Historial Serial
                     </a>
-                    <a href="/seriales-pdf" class="quick-action-btn">
+                    <a href="/seriales-pdf" class="quick-action-btn d-none">
                         <i class="ri-barcode-box-fill"></i>Extraer Seriales de PDF
                     </a>
                 </div>
